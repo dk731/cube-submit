@@ -100,9 +100,9 @@ var KTDatatablesServerSide = (function () {
 
     // Re-init functions on every table re-draw -- more info: https://datatables.net/reference/event/draw
     dt.on("draw", function () {
-      initToggleToolbar();
-      toggleToolbars();
-      handleDeleteRows();
+      //initToggleToolbar();
+      //toggleToolbars();
+      //handleDeleteRows();
       KTMenu.createInstances();
     });
   };
@@ -359,10 +359,10 @@ var KTDatatablesServerSide = (function () {
   return {
     init: function () {
       initDatatable();
-      handleSearchDatatable();
-      initToggleToolbar();
+      //handleSearchDatatable();
+      //initToggleToolbar();
       //handleFilterDatatable();
-      handleDeleteRows();
+      //handleDeleteRows();
       //handleResetForm();
     },
   };

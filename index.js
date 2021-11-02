@@ -1,8 +1,11 @@
+const { parse: parseQuery } = require("querystring");
+const cookie_parser = require("cookie-parser");
 const express = require("express");
 const sqlite3 = require("sqlite3");
-var path = require("path");
-const cookie_parser = require("cookie-parser");
+const axios = require("axios").default;
 const uuid = require("uuid");
+const path = require("path");
+const fs = require("fs");
 
 var db = new sqlite3.Database("users_data.db", (err) => {
   if (err) {
@@ -14,6 +17,7 @@ var db = new sqlite3.Database("users_data.db", (err) => {
 const GOOGLE_CLIENT_ID =
   "589100687475-a5os5k6fob930dm7ns7fvmar32p71qrp.apps.googleusercontent.com";
 const GITHUB_CLIENT_ID = "e770e6440fbaac8200a7";
+const GITHUB_CLIENT_SECRET = "2efd546aa39c3fbccc6eff4433aa8225ce4a7975";
 
 const { OAuth2Client } = require("google-auth-library");
 const e = require("express");
@@ -24,20 +28,80 @@ const DEFUALT_PICTURE = "..asdalksjdm";
 const app = express();
 const port = 3000;
 
+var ASIDE_HTML_FILE;
+var LIST_HTML_FILE;
+
+fs.readFile(
+  path.resolve(__dirname, "templates/", "aside.html"),
+  (err, data) => {
+    if (err) throw err;
+
+    ASIDE_HTML_FILE = data.toString("utf-8");
+  }
+);
+
+fs.readFile(path.resolve(__dirname, "templates/", "list.html"), (err, data) => {
+  if (err) throw err;
+
+  LIST_HTML_FILE = data.toString("utf-8");
+});
+
 app.use(express.static(path.join(__dirname, "public")));
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 app.use(cookie_parser());
 
 app.get("/", (request, response) => {
-  check_session(request.cookies).then(
-    (suc) => {
-      response.sendFile(path.resolve(__dirname, "public/", "list.html"));
-    },
-    (rej) => {
-      response.sendFile(path.resolve(__dirname, "public/", "sign-in.html"));
-    }
-  );
+  check_session(request.cookies)
+    .then(
+      (suc) => {
+        var aside_atr = "{:MENU1:}";
+        if ("menu" in request.query) {
+          switch (request.query.menu) {
+            case "main":
+              aside_atr = "{:MENU1:}";
+              break;
+            case "my_jobs":
+              aside_atr = "{:MENU2:}";
+              break;
+            case "leader":
+              aside_atr = "{:MENU3:}";
+              break;
+          }
+        }
+
+        db.get(
+          "SELECT avatar FROM users WHERE users.id = (SELECT user_id FROM sessions WHERE sessions.session_id = ?)",
+          [request.cookies.session],
+          (err, row) => {
+            if (err) throw err;
+
+            if (row) {
+              response.send(
+                LIST_HTML_FILE.replace(
+                  new RegExp("{:AVATAR:}", "g"),
+                  row.avatar
+                ).replace(
+                  "{:ASIDE:}",
+                  ASIDE_HTML_FILE.replace(aside_atr, "here show").replace(
+                    "{:MENU1:}|{:MENU2:}|{:MENU3:}",
+                    ""
+                  )
+                )
+              );
+            } else {
+              throw "ERORR";
+            }
+          }
+        );
+      },
+      (rej) => {
+        response.sendFile(path.resolve(__dirname, "public/", "sign-in.html"));
+      }
+    )
+    .catch((e) => {
+      response.status(500).send("ERROR");
+    });
 });
 
 app.get("/queu_table", (request, response) => {
@@ -54,7 +118,6 @@ app.get("/queu_table", (request, response) => {
               "SELECT count(*) cnt FROM jobs WHERE status not in ('cancel','done') ORDER BY id",
               [],
               (err, rows_count) => {
-                // count(*)
                 var out_data = [];
 
                 rows_data.forEach((el) => {
@@ -89,17 +152,65 @@ app.get("/queu_table", (request, response) => {
     });
 });
 
+app.get("/signout", (request, response) => {
+  db.run("DELETE from sessions WHERE sessions.session_id = ?", [
+    request.cookies.session,
+  ]);
+
+  response
+    .cookie("session", "", {
+      expires: 0,
+      httpOnly: true,
+    })
+    .status(200)
+    .redirect("/");
+});
+
 app.get("/tokensignin", (request, response) => {
   if ("inst_redir" in request.query) {
-    // response.status(302).redirect(request.query.inst_redir.substring());
+    var redir_url = request.query.inst_redir;
+
+    Object.entries(request.query).forEach(([k, v]) => {
+      if (!["inst_redir", "rememb_value"].includes(k))
+        redir_url += "&" + k + "=" + v;
+    });
+
+    response
+      .status(302)
+      .cookie("tmp_auth", request.query.rememb_value, {
+        expires: new Date(Date.now() + 300000),
+        httpOnly: true,
+      })
+      .redirect(redir_url);
     return;
   }
 
-  if (request.query.in_type == "google") {
-    auth_google(request, response);
-  } else {
-    console.log(request.originalUrl);
-  }
+  check_session(request.cookies).then(
+    (suc) => {
+      response
+        .cookie("session", request.cookies["session"], {
+          expires: new Date(Date.now() + 900000),
+          httpOnly: true,
+        })
+        .status(200)
+        .redirect("/");
+    },
+    (rej) => {
+      switch (request.query.in_type) {
+        case "google":
+          auth_google(request, response);
+          break;
+        case "facebook":
+          auth_facebook(request, response);
+          break;
+        case "github":
+        default:
+          // If no querry type parrametrs was given, try to auth with github
+          auth_github(request, response);
+          break;
+      }
+    }
+  );
 });
 
 app.listen(port, () => {
@@ -151,55 +262,13 @@ function auth_google(request, response) {
 
       // Invalid AUD field
       if (payload.aud != GOOGLE_CLIENT_ID) throw "Invalid AUD!";
-      console.log(payload);
-      check_session(request.cookies).then(
-        (suc) => {
-          response
-            .cookie("session", request.cookies["session"], {
-              expires: new Date(Date.now() + 900000),
-              httpOnly: true,
-            })
-            .status(200)
-            .send("Login succesfully!");
-        },
-        (rej) => {
-          db.get(
-            "SELECT count(*) cnt FROM USERS WHERE users.ext_id = ? AND users.type = ?",
-            [payload.sub, "google"],
-            (err, row) => {
-              if (err) throw "Was not able to check if users exists";
 
-              if (row.cnt == 0) {
-                db.run(
-                  "INSERT INTO users(id, username, type, ext_id, avatar) VALUES((SELECT IFNULL(MAX(id), 0) + 1 FROM users), ?, ?, ?, ?)",
-                  [
-                    hidden_email(payload),
-                    "google",
-                    payload.sub,
-                    "picture" in payload ? payload.picture : DEFUALT_PICTURE,
-                  ]
-                );
-              } else {
-                db.run(
-                  "UPDATE users SET avatar = ? WHERE users.ext_id = ? AND users.type = ?",
-                  [
-                    "picture" in payload ? payload.picture : DEFUALT_PICTURE,
-                    payload.sub,
-                    "google",
-                  ]
-                );
-              }
-
-              response
-                .cookie("session", set_session_id(payload.sub), {
-                  expires: new Date(Date.now() + 900000),
-                  httpOnly: true,
-                })
-                .status(200)
-                .send("Login succesfully!");
-            }
-          );
-        }
+      add_user(
+        hidden_email(payload),
+        payload.sub,
+        "google",
+        "picture" in payload ? payload.picture : DEFUALT_PICTURE,
+        response
       );
     })
     .catch((e) => {
@@ -207,9 +276,93 @@ function auth_google(request, response) {
     });
 }
 
-function auth_github(requests) {}
+function auth_github(request, response) {
+  if (
+    "tmp_auth" in request.cookies &&
+    request.cookies.tmp_auth == request.query.state
+  ) {
+    axios
+      .post(
+        "https://github.com/login/oauth/access_token",
+        {},
+        {
+          params: {
+            client_id: GITHUB_CLIENT_ID,
+            client_secret: GITHUB_CLIENT_SECRET,
+            code: request.query.code,
+          },
+        }
+      )
+      .then((res_token) => {
+        const res_query = parseQuery(res_token.data);
+
+        if (res_token.status != 200 || "error" in res_query)
+          throw "Error during aqcuaring of github api token";
+
+        axios
+          .get("https://api.github.com/user", {
+            headers: { Authorization: "token " + res_query.access_token },
+          })
+          .then((res_api) => {
+            add_user(
+              hidden_username(res_api.data),
+              res_api.data.id,
+              "github",
+              "avatar_url" in res_api.data
+                ? res_api.data.avatar_url
+                : DEFUALT_PICTURE,
+              response
+            );
+          });
+      })
+      .catch((err) => {
+        response.status(401).send("Was not able to login with github :(123");
+      });
+  } else {
+    response.status(401).send("Was not able to login with github :(");
+  }
+}
+
+function add_user(username, ext_id, type, avatar, response) {
+  return new Promise((resolve, reject) => {
+    db.get(
+      "SELECT count(*) cnt FROM USERS WHERE users.ext_id = ? AND users.type = ?",
+      [ext_id, type],
+      (err, row) => {
+        if (err) reject("Was not able to check if users exists");
+
+        if (row.cnt == 0) {
+          db.run(
+            "INSERT INTO users(id, username, type, ext_id, avatar) VALUES((SELECT IFNULL(MAX(id), 0) + 1 FROM users), ?, ?, ?, ?)",
+            [username, type, ext_id, avatar]
+          );
+        } else {
+          db.run(
+            "UPDATE users SET avatar = ? WHERE users.ext_id = ? AND users.type = ?",
+            [avatar, ext_id, type]
+          );
+        }
+
+        resolve("Added user");
+      }
+    );
+  }).then((suc) => {
+    response
+      .cookie("session", set_session_id(ext_id), {
+        expires: new Date(Date.now() + 900000),
+        httpOnly: true,
+      })
+      .status(200)
+      .redirect("/");
+  });
+}
 
 function hidden_email(payload) {
   if ("email" in payload) return payload.email;
   else return "no_email@asd.com";
+}
+
+function hidden_username(querry) {
+  if ("login" in querry) return querry.login;
+  else return "anonymous";
 }

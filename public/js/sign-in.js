@@ -32,14 +32,9 @@ function attach_google() {
 
 //////////////////////////////////////////// GITHUB
 function auth_github() {
-  // e770e6440fbaac8200a7
-  //   console.log(123);
-  //   code=da0599afce0aee9d2d46&state=4so88Sfqcm
-  const github_url = `https://github.com/login/oauth/authorize?client_id=e770e6440fbaac8200a7&redirect_uri=http://trycubic.com:3000/tokensignin&state=${get_random_string()}`;
+  const random_str = get_random_string();
+  const github_url = `https://github.com/login/oauth/authorize?client_id=e770e6440fbaac8200a7&redirect_uri=http://trycubic.com:3000/tokensignin&state=${random_str}&rememb_value=${random_str}`;
   window.location.replace("/tokensignin?inst_redir=" + github_url);
-
-  //   console.log(url_to_open);
-  //   window.open(url_to_open, "_blank").focus();
 }
 
 ////////////////////////////////////////////
@@ -65,7 +60,7 @@ var start_buttons = function () {
 start_buttons();
 
 function get_random_string() {
-  return Array(20)
+  return Array(35)
     .fill()
     .map(() =>
       "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789".charAt(
