@@ -1,46 +1,76 @@
-var xhr = new XMLHttpRequest();
-xhr.open("POST", "/tokensignin", true);
-xhr.setRequestHeader("Content-Type", "application/json");
-
-function onSignIn(googleUser) {
-  var profile = googleUser.getBasicProfile();
+//////////////////////////////////////////// GOOGLE
+function auth_google(usr) {
+  var profile = usr.getBasicProfile();
   console.log("ID: " + profile.getId()); // Do not send to your backend! Use an ID token instead.
-  console.log("Token: ", googleUser.getAuthResponse()); // Do not send to your backend! Use an ID token instead.
+  console.log("Token: ", usr.getAuthResponse()); // Do not send to your backend! Use an ID token instead.
   console.log("Name: " + profile.getName());
   console.log("Image URL: " + profile.getImageUrl());
   console.log("Email: " + profile.getEmail()); // This is null if the 'email' scope is not present.
 
-  xhr.onreadystatechange = function () {
-    if (xhr.readyState == 4 && xhr.status == 200) {
-      location.reload();
-    } else {
-      console.log(xhr.responseText);
-    }
-  };
-
-  xhr.send(JSON.stringify({ id_token: googleUser.getAuthResponse().id_token }));
+  fetch(
+    "/tokensignin?" +
+      new URLSearchParams({
+        id_token: usr.getAuthResponse().id_token,
+        in_type: "google",
+      }).toString()
+  ).then((res) => {
+    location.reload();
+  });
 }
 
-var startApp = function () {
-  gapi.load("auth2", function () {
-    auth2 = gapi.auth2.init({
-      client_id:
-        "589100687475-a5os5k6fob930dm7ns7fvmar32p71qrp.apps.googleusercontent.com",
-      cookiepolicy: "single_host_origin",
-    });
-    attachSignin();
-  });
-};
-
-function attachSignin() {
+function attach_google() {
   auth2.attachClickHandler(
-    document.getElementById("my-signin2"),
+    document.getElementById("google_btn"),
     {},
-    onSignIn,
+    auth_google,
     function (error) {
       alert(JSON.stringify(error, undefined, 2));
     }
   );
 }
+////////////////////////////////////////////
 
-startApp();
+//////////////////////////////////////////// GITHUB
+function auth_github() {
+  // e770e6440fbaac8200a7
+  //   console.log(123);
+  //   code=da0599afce0aee9d2d46&state=4so88Sfqcm
+  const github_url = `https://github.com/login/oauth/authorize?client_id=e770e6440fbaac8200a7&redirect_uri=http://trycubic.com:3000/tokensignin&state=${get_random_string()}`;
+  window.location.replace("/tokensignin?inst_redir=" + github_url);
+
+  //   console.log(url_to_open);
+  //   window.open(url_to_open, "_blank").focus();
+}
+
+////////////////////////////////////////////
+
+var start_buttons = function () {
+  gapi.load("auth2", function () {
+    // google
+    auth2 = gapi.auth2.init({
+      client_id:
+        "589100687475-a5os5k6fob930dm7ns7fvmar32p71qrp.apps.googleusercontent.com",
+      cookiepolicy: "single_host_origin",
+    });
+    attach_google();
+  });
+
+  document //github
+    .getElementById("github_btn")
+    .addEventListener("click", function () {
+      auth_github();
+    });
+};
+
+start_buttons();
+
+function get_random_string() {
+  return Array(20)
+    .fill()
+    .map(() =>
+      "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789".charAt(
+        Math.random() * 62
+      )
+    )
+    .join("");
+}
