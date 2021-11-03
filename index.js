@@ -7,6 +7,60 @@ const uuid = require("uuid");
 const path = require("path");
 const fs = require("fs");
 
+const STATUSES = {
+  SUBMITED: {
+    value: "submited",
+    render:
+      "<div class='row'><div class='col-12 d-flex justify-content-center text-center'><span class='badge badge-light-primary'>submited</span></div></div>",
+  },
+  VALIDATING: {
+    value: "validating",
+    render:
+      "<div class='row'><div class='col-12 d-flex justify-content-center text-center'><span class='badge badge-light-dark'>validating</span></div></div>",
+  },
+  PENDING: {
+    value: "pending",
+    render:
+      "<div class='row'><div class='col-12 d-flex justify-content-center text-center'><span class='badge badge-light-warning'>pending</span></div></div>",
+  },
+  RUNNING: {
+    value: "running",
+    render:
+      "<div class='row'><div class='col-12 d-flex justify-content-center text-center'><span class='badge badge-light-info'>running</span></div></div>",
+  },
+  VOTING: {
+    value: "voting",
+    render:
+      "<div class='row'><div class='col-12 d-flex justify-content-center text-center'><span class='badge badge-success'>voting</span></div></div>",
+  },
+  DONE: {
+    value: "done",
+    render:
+      "<div class='row'><div class='col-12 d-flex justify-content-center text-center'><span class='badge badge-light-success'>done</span></div></div>",
+  },
+  CANCELED: {
+    value: "canceled",
+    render:
+      "<div class='row'><div class='col-12 d-flex justify-content-center text-center'><span class='badge badge-light-danger'>canceled</span></div></div>",
+  },
+  ERROR: {
+    value: "error",
+    render:
+      "<div class='row'><div class='col-12 d-flex justify-content-center text-center'><span class='badge badge-danger'>error</span></div></div>",
+  },
+};
+
+const UNLIKABLE_STATUSES = [
+  STATUSES.SUBMITED.value,
+  STATUSES.VALIDATING.value,
+  STATUSES.PENDING.value,
+  STATUSES.CANCELED.value,
+  STATUSES.ERROR.value,
+];
+
+const RES_SUCCESS = JSON.stringify({ success: true });
+const RES_FAIL = JSON.stringify({ success: true });
+
 var db = new sqlite3.Database("users_data.db", (err) => {
   if (err) {
     return console.error(err.message);
@@ -71,10 +125,6 @@ app.get("/", (request, response) => {
               aside_atr = "{:MENU3:}";
               break;
             default:
-              console.log(
-                "Redirecting with menu=main cur_params: ",
-                cur_params
-              );
               response.status(301).redirect("/?menu=main"); // If not active page was found, redirect to main page
               return;
           }
@@ -101,7 +151,6 @@ app.get("/", (request, response) => {
                     )
                   );
               } else {
-                console.log("Throwing sadasdasdsa");
                 throw "ERORR";
               }
             }
@@ -112,9 +161,7 @@ app.get("/", (request, response) => {
             "UPDATE sessions SET params = ? WHERE sessions.session_id = ?",
             [JSON.stringify(cur_params), request.cookies.session],
             (err) => {
-              console.log(err);
               if (err) throw "Was not able to set session active page";
-              console.log("Sending redirect");
               response.status(301).redirect("/");
             }
           );
@@ -135,13 +182,16 @@ app.get("/query_table", (request, response) => {
       (cur_sess) => {
         const cur_params = JSON.parse(cur_sess.params);
 
-        const sql_likes_req =
-          "(SELECT count(*) FROM likes WHERE user_id = $usr_id)";
-        const sql_fields_main = `SELECT id, user_id, note, submited, status, ${sql_likes_req} likes FROM jobs WHERE `;
+        const sql_cur_usr_likes =
+          "(SELECT count(*) FROM likes WHERE likes.job_id = jobs.id AND likes.user_id = $usr_id)";
+        const sql_user_req =
+          "(SELECT users.username FROM users WHERE users.id = jobs.user_id)";
+
+        const sql_fields_main = `SELECT jobs.id, ${sql_user_req} username, jobs.user_id, jobs.note, jobs.submited, jobs.status, jobs.likes, ${sql_cur_usr_likes} usr_like FROM jobs WHERE `;
         const sql_count_main = "SELECT count(*) cnt FROM jobs WHERE ";
 
         const sql_filter_list = [];
-        const sql_order = " ORDER BY id";
+        var sql_order = " ORDER BY jobs.id";
         const sql_offset_lim = " LIMIT $req_len OFFSET $req_start";
 
         const sql_main_obj = { $usr_id: cur_sess.user_id };
@@ -157,11 +207,18 @@ app.get("/query_table", (request, response) => {
 
         switch (cur_params.active_page) {
           case "main":
-            sql_filter_list.push("status not in ('cancel','done')");
+            sql_filter_list.push(
+              "jobs.status in ('pending','voting', 'running')"
+            );
             break;
           case "my_jobs":
-            sql_filter_list.push("user_id = $usr_id");
+            sql_filter_list.push("jobs.user_id = $usr_id");
             sql_filter_obj["$usr_id"] = cur_sess.user_id;
+            break;
+          case "leader":
+            sql_filter_list.push("jobs.status in ('done', 'voting')");
+            sql_order = " ORDER BY jobs.likes DESC";
+            break;
         }
 
         if (sql_filter_list.length == 0) sql_filter_list.push("1"); // In case not filters were provided, selece with WHERE 1
@@ -190,11 +247,60 @@ app.get("/query_table", (request, response) => {
 
             var out_data = [];
 
-            rows_data.forEach((el) => {
+            rows_data.forEach((el, i) => {
               var tmp_obj = {};
 
               request.query.columns.forEach((in_el) => {
-                tmp_obj[in_el.data] = el[in_el.data];
+                if (in_el.data == "likes") {
+                  if (
+                    el.user_id == cur_sess.user_id ||
+                    UNLIKABLE_STATUSES.includes(el.status)
+                  ) {
+                    // Pass just number
+                    tmp_obj[in_el.data] = el.likes;
+                  } else {
+                    // Pass button
+                    if (el.usr_like) {
+                      tmp_obj[in_el.data] = `
+                      <div class="row">
+                        <div class="col-4 d-flex justify-content-center align-items-center"><div>${
+                          el.likes
+                        }</div></div>
+                        <div class="col-6">
+                          <div class="btn btn-sm btn-icon btn-outline-danger btn-hover-rotate-${
+                            (i & 1) == 0 ? "end" : "start"
+                          } me-1 btn-outline" onclick="on_like_click(${
+                        el.id
+                      })"><i class="fas fa-heart-broken text-black"></i></div>
+                        </div>
+                      </div>`;
+                    } else {
+                      tmp_obj[in_el.data] = `
+                      <div class="row">
+                        <div class="col-4 d-flex justify-content-center align-items-center"><div>${
+                          el.likes
+                        }</div></div>
+                        <div class="col-6">
+                        <div class="btn btn-sm btn-icon btn-danger btn-hover-rotate-${
+                          (i & 1) == 0 ? "end" : "start"
+                        } me-1" onclick="on_like_click(${
+                        el.id
+                      })"><i class="fas fa-heart text-white"></i></div>
+                        </div>
+                      </div>`;
+                    }
+                  }
+                } else if (in_el.data == "status") {
+                  const status_res = Object.values(STATUSES).find(
+                    (sel) => sel.value == el[in_el.data]
+                  );
+
+                  if (status_res) {
+                    tmp_obj[in_el.data] = status_res.render;
+                  } else {
+                    tmp_obj[in_el.data] = el[in_el.data];
+                  }
+                } else tmp_obj[in_el.data] = el[in_el.data];
               });
 
               out_data.push(tmp_obj);
@@ -220,7 +326,122 @@ app.get("/query_table", (request, response) => {
     });
 });
 
-// app.get("/query_table", (request, response) => {
+app.get("/toggle_like", (request, response) => {
+  check_session(request.cookies)
+    .then(
+      (cur_sess) => {
+        if ("job_id" in request.query == false)
+          throw "Not job to like was provided";
+
+        db.get(
+          "SELECT jobs.user_id, jobs.status FROM jobs WHERE jobs.id = ?",
+          [parseInt(request.query.job_id)],
+          (err, row) => {
+            if (err) throw "Was not able to select likes table";
+
+            if (!row) {
+              response.status(500).send(RES_FAIL);
+              return;
+            }
+
+            if (
+              cur_sess.user_id == row.user_id ||
+              UNLIKABLE_STATUSES.includes(row.status)
+            ) {
+              response.status(500).send(RES_FAIL); // Attempt of like own job or like of unlikable job
+              return;
+            }
+
+            db.get(
+              "SELECT likes.id FROM likes WHERE likes.job_id = ? AND likes.user_id = ?",
+              [request.query.job_id, cur_sess.user_id],
+              (err, like_row) => {
+                if (err) throw "Was not able to select like with given job id";
+
+                var main_sql = "";
+                var main_params = [];
+
+                if (like_row) {
+                  main_sql = "DELETE FROM likes WHERE likes.id = ?";
+                  main_params = [like_row.id];
+                } else {
+                  main_sql =
+                    "INSERT INTO likes (id, user_id, job_id, whn) VALUES((SELECT IFNULL(MAX(a.id), 0) + 1 FROM likes a), ?, ?, ?)";
+                  main_params = [
+                    cur_sess.user_id,
+                    request.query.job_id,
+                    Date.now(),
+                  ];
+                }
+
+                db.run(main_sql, main_params, (err) => {
+                  if (err) {
+                    response.status(200).send(RES_FAIL);
+                    return;
+                  }
+
+                  db.run(
+                    `UPDATE jobs SET likes = likes ${
+                      like_row ? "-" : "+"
+                    } 1 WHERE jobs.id = ?`,
+                    [request.query.job_id],
+                    (err) => {
+                      if (err) response.status(200).send(RES_FAIL);
+                      else response.status(200).send(RES_SUCCESS);
+                    }
+                  );
+                });
+
+                // new Promise((resolve, reject) => {
+                //   if (like_row) {
+                //     db.serialize(() => {
+                //       db.run("DELETE FROM likes WHERE likes.id = ?", [
+                //         like_row.id,
+                //       ]).run(
+                //         "UPDATE jobs SET likes = likes - 1 WHERE jobs.id = ?",
+                //         [request.query.job_id],
+                //         (err) => {
+                //           (err) => {
+                //             if (err) reject("Was not able to add like");
+                //             resolve(true);
+                //           };
+                //         }
+                //       );
+                //     });
+                //   } else {
+                //     db.serialize(() => {
+                //       db.run(
+                //         "INSERT INTO likes (id, user_id, job_id, whn) VALUES((SELECT IFNULL(MAX(a.id), 0) + 1 FROM likes a), ?, ?, ?)",
+                //         [cur_sess.user_id, request.query.job_id, Date.now()]
+                //       ).run(
+                //         "UPDATE jobs SET likes = likes + 1 WHERE jobs.id = ?",
+                //         [request.query.job_id],
+                //         (err) => {
+                //           (err) => {
+                //             if (err) reject("Was not able to add like");
+                //             resolve(true);
+                //           };
+                //         }
+                //       );
+                //     }).then;
+                //   }
+                // }).then(
+                //   (res) => {},
+                //   (rej) => {}
+                // );
+              }
+            );
+          }
+        );
+      },
+      (rej) => {
+        throw "User not in authorized";
+      }
+    )
+    .catch((e) => {
+      response.status(500).send(RES_FAIL);
+    });
+});
 
 app.get("/signout", (request, response) => {
   db.run("DELETE from sessions WHERE sessions.session_id = ?", [
@@ -259,7 +480,7 @@ app.get("/tokensignin", (request, response) => {
     (cur_sess) => {
       response
         .cookie("session", request.cookies["session"], {
-          expires: new Date(Date.now() + 900000),
+          expires: new Date(Date.now() + 86400000),
           httpOnly: true,
         })
         .status(200)

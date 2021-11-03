@@ -1,14 +1,14 @@
 "use strict";
-
+var dt;
 // Class definition
 var KTDatatablesServerSide = (function () {
   // Shared variables
   var table;
-  var dt;
   var filterPayment;
 
   // Private functions
   var initDatatable = function () {
+    localStorage.removeItem("DataTables_kt_datatable_example_1_/");
     dt = $("#kt_datatable_example_1").DataTable({
       searchDelay: 500,
       processing: true,
@@ -25,7 +25,7 @@ var KTDatatablesServerSide = (function () {
       },
       columns: [
         { data: "id" },
-        { data: "user_id" },
+        { data: "username" },
         { data: "note" },
         { data: "submited" },
         { data: "status" },
@@ -373,3 +373,13 @@ var KTDatatablesServerSide = (function () {
 KTUtil.onDOMContentLoaded(function () {
   KTDatatablesServerSide.init();
 });
+
+function on_like_click(job_id) {
+  fetch("/toggle_like?job_id=" + job_id)
+    .then((res) => res.json())
+    .then((data) => {
+      if (data.success) {
+        dt.ajax.reload(null, false);
+      }
+    });
+}
