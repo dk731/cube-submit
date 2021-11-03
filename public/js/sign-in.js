@@ -7,15 +7,13 @@ function auth_google(usr) {
   console.log("Image URL: " + profile.getImageUrl());
   console.log("Email: " + profile.getEmail()); // This is null if the 'email' scope is not present.
 
-  fetch(
+  window.location.replace(
     "/tokensignin?" +
       new URLSearchParams({
         id_token: usr.getAuthResponse().id_token,
         in_type: "google",
       }).toString()
-  ).then((res) => {
-    location.reload();
-  });
+  );
 }
 
 function attach_google() {
@@ -37,6 +35,14 @@ function auth_github() {
   window.location.replace("/tokensignin?inst_redir=" + github_url);
 }
 
+//////////////////////////////////////////// FACEBOOK
+
+function auth_facebook() {
+  FB.login(function (response) {
+    console.log(response);
+  });
+}
+
 ////////////////////////////////////////////
 
 var start_buttons = function () {
@@ -54,6 +60,12 @@ var start_buttons = function () {
     .getElementById("github_btn")
     .addEventListener("click", function () {
       auth_github();
+    });
+
+  document //github
+    .getElementById("facebook_btn")
+    .addEventListener("click", function () {
+      auth_facebook();
     });
 };
 

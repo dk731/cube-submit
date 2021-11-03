@@ -54,10 +54,13 @@ app.use(cookie_parser());
 app.get("/", (request, response) => {
   check_session(request.cookies)
     .then(
-      (suc) => {
-        var aside_atr = "{:MENU1:}";
-        if ("menu" in request.query) {
-          switch (request.query.menu) {
+      (cur_sess) => {
+        const cur_params = JSON.parse(cur_sess.params);
+
+        if (object_empty(request.query)) {
+          var aside_atr = "{:MENU1:}";
+
+          switch (cur_params.active_page) {
             case "main":
               aside_atr = "{:MENU1:}";
               break;
@@ -67,81 +70,146 @@ app.get("/", (request, response) => {
             case "leader":
               aside_atr = "{:MENU3:}";
               break;
-          }
-        }
-
-        db.get(
-          "SELECT avatar FROM users WHERE users.id = (SELECT user_id FROM sessions WHERE sessions.session_id = ?)",
-          [request.cookies.session],
-          (err, row) => {
-            if (err) throw err;
-
-            if (row) {
-              response.send(
-                LIST_HTML_FILE.replace(
-                  new RegExp("{:AVATAR:}", "g"),
-                  row.avatar
-                ).replace(
-                  "{:ASIDE:}",
-                  ASIDE_HTML_FILE.replace(aside_atr, "here show").replace(
-                    "{:MENU1:}|{:MENU2:}|{:MENU3:}",
-                    ""
-                  )
-                )
+            default:
+              console.log(
+                "Redirecting with menu=main cur_params: ",
+                cur_params
               );
-            } else {
-              throw "ERORR";
-            }
+              response.status(301).redirect("/?menu=main"); // If not active page was found, redirect to main page
+              return;
           }
-        );
+
+          db.get(
+            "SELECT avatar FROM users WHERE users.id = (SELECT user_id FROM sessions WHERE sessions.session_id = ?)",
+            [request.cookies.session],
+            (err, row) => {
+              if (err) throw err;
+
+              if (row) {
+                response
+                  .status(200)
+                  .send(
+                    LIST_HTML_FILE.replace(
+                      new RegExp("{:AVATAR:}", "g"),
+                      row.avatar
+                    ).replace(
+                      "{:ASIDE:}",
+                      ASIDE_HTML_FILE.replace(aside_atr, "here show").replace(
+                        "{:MENU1:}|{:MENU2:}|{:MENU3:}",
+                        ""
+                      )
+                    )
+                  );
+              } else {
+                console.log("Throwing sadasdasdsa");
+                throw "ERORR";
+              }
+            }
+          );
+        } else {
+          cur_params["active_page"] = request.query.menu;
+          db.run(
+            "UPDATE sessions SET params = ? WHERE sessions.session_id = ?",
+            [JSON.stringify(cur_params), request.cookies.session],
+            (err) => {
+              console.log(err);
+              if (err) throw "Was not able to set session active page";
+              console.log("Sending redirect");
+              response.status(301).redirect("/");
+            }
+          );
+        }
       },
       (rej) => {
         response.sendFile(path.resolve(__dirname, "public/", "sign-in.html"));
       }
     )
     .catch((e) => {
-      response.status(500).send("ERROR");
+      response.status(500).send(e);
     });
 });
 
-app.get("/queu_table", (request, response) => {
+app.get("/query_table", (request, response) => {
   check_session(request.cookies)
     .then(
-      (suc) => {
-        db.all(
-          "SELECT id, user_id, note, submited, status FROM jobs WHERE status not in ('cancel','done') ORDER BY id LIMIT ? OFFSET ?",
-          [parseInt(request.query.length), parseInt(request.query.start)],
-          (err, rows_data) => {
+      (cur_sess) => {
+        const cur_params = JSON.parse(cur_sess.params);
+
+        const sql_likes_req =
+          "(SELECT count(*) FROM likes WHERE user_id = $usr_id)";
+        const sql_fields_main = `SELECT id, user_id, note, submited, status, ${sql_likes_req} likes FROM jobs WHERE `;
+        const sql_count_main = "SELECT count(*) cnt FROM jobs WHERE ";
+
+        const sql_filter_list = [];
+        const sql_order = " ORDER BY id";
+        const sql_offset_lim = " LIMIT $req_len OFFSET $req_start";
+
+        const sql_main_obj = { $usr_id: cur_sess.user_id };
+
+        const sql_filter_obj = {};
+
+        const sql_order_obj = {};
+
+        const sql_offset_obj = {
+          $req_len: parseInt(request.query.length),
+          $req_start: parseInt(request.query.start),
+        };
+
+        switch (cur_params.active_page) {
+          case "main":
+            sql_filter_list.push("status not in ('cancel','done')");
+            break;
+          case "my_jobs":
+            sql_filter_list.push("user_id = $usr_id");
+            sql_filter_obj["$usr_id"] = cur_sess.user_id;
+        }
+
+        if (sql_filter_list.length == 0) sql_filter_list.push("1"); // In case not filters were provided, selece with WHERE 1
+
+        const res_jobs_obj = Object.assign(
+          {},
+          sql_main_obj,
+          sql_filter_obj,
+          sql_order_obj,
+          sql_offset_obj
+        );
+        const res_jobs_sql =
+          sql_fields_main +
+          sql_filter_list.join(" AND ") +
+          sql_order +
+          sql_offset_lim;
+
+        const res_count_obj = Object.assign({}, sql_filter_obj, sql_order_obj);
+        const res_count_sql =
+          sql_count_main + sql_filter_list.join(" AND ") + sql_order;
+
+        db.all(res_jobs_sql, res_jobs_obj, (err, rows_data) => {
+          if (err) throw "Was not able to select DB";
+          db.get(res_count_sql, res_count_obj, (err, rows_count) => {
             if (err) throw "Was not able to select DB";
 
-            db.get(
-              "SELECT count(*) cnt FROM jobs WHERE status not in ('cancel','done') ORDER BY id",
-              [],
-              (err, rows_count) => {
-                var out_data = [];
+            var out_data = [];
 
-                rows_data.forEach((el) => {
-                  var tmp_obj = {};
+            rows_data.forEach((el) => {
+              var tmp_obj = {};
 
-                  request.query.columns.forEach((in_el) => {
-                    tmp_obj[in_el.data] = el[in_el.data];
-                  });
+              request.query.columns.forEach((in_el) => {
+                tmp_obj[in_el.data] = el[in_el.data];
+              });
 
-                  out_data.push(tmp_obj);
-                });
+              out_data.push(tmp_obj);
+            });
 
-                response.send(
-                  JSON.stringify({
-                    draw: request.query.draw,
-                    recordsTotal: rows_count.cnt,
-                    recordsFiltered: rows_count.cnt,
-                    data: out_data,
-                  })
-                );
-              }
+            response.status(200).send(
+              JSON.stringify({
+                draw: request.query.draw,
+                recordsTotal: rows_count.cnt,
+                recordsFiltered: rows_count.cnt,
+                data: out_data,
+              })
             );
-          }
-        );
+          });
+        });
       },
       (rej) => {
         throw "User not in authorized";
@@ -151,6 +219,8 @@ app.get("/queu_table", (request, response) => {
       response.send(JSON.stringify({ success: false }));
     });
 });
+
+// app.get("/query_table", (request, response) => {
 
 app.get("/signout", (request, response) => {
   db.run("DELETE from sessions WHERE sessions.session_id = ?", [
@@ -186,7 +256,7 @@ app.get("/tokensignin", (request, response) => {
   }
 
   check_session(request.cookies).then(
-    (suc) => {
+    (cur_sess) => {
       response
         .cookie("session", request.cookies["session"], {
           expires: new Date(Date.now() + 900000),
@@ -217,29 +287,17 @@ app.listen(port, () => {
   console.log(`Example app listening at http://localhost:${port}`);
 });
 
-function set_session_id(sub) {
-  var random_str = uuid.v4();
-  console.log("Adding new session with random string: ", random_str);
-
-  db.run(
-    "INSERT INTO sessions(session_id, user_id) VALUES(?, (SELECT id FROM users WHERE ext_id = ?))",
-    [random_str, sub]
-  );
-
-  return random_str;
-}
-
 // Returns promise, if rejected - then cookie list does not contain active session, resolved - active session was found
 function check_session(cookies) {
   var ret_val;
   if ("session" in cookies) {
     ret_val = new Promise((resolve, reject) => {
       db.get(
-        "SELECT count(*) cnt from sessions where session_id = ?",
+        "SELECT * FROM sessions WHERE session_id = ?",
         [cookies["session"]],
         (err, row) => {
-          if (err || row.cnt == 0) reject(false);
-          resolve(true);
+          if (err || !row) reject(false);
+          resolve(row);
         }
       );
     });
@@ -357,12 +415,33 @@ function add_user(username, ext_id, type, avatar, response) {
   });
 }
 
+function set_session_id(sub) {
+  var random_str = uuid.v4();
+  console.log("Adding new session with random string: ", random_str);
+
+  db.run(
+    "INSERT INTO sessions(user_id, session_id, time, params) VALUES((SELECT id FROM users WHERE ext_id = ?), ?, ?, ?)",
+    [sub, random_str, Date.now(), JSON.stringify({ active_page: "main" })]
+  );
+
+  return random_str;
+}
+
 function hidden_email(payload) {
-  if ("email" in payload) return payload.email;
-  else return "no_email@asd.com";
+  if ("email" in payload)
+    return payload.email.replace(/(\w{3})[\w.-]+@([\w.]+\w)/, "$1***@$2");
+  else return "hidden_email";
 }
 
 function hidden_username(querry) {
-  if ("login" in querry) return querry.login;
+  if ("login" in querry)
+    return querry.login.replace(/(\w{3})[\w.-]+(\w)/, "$1****$2");
   else return "anonymous";
+}
+
+function object_empty(obj) {
+  for (var key in obj) {
+    if (obj.hasOwnProperty(key)) return false;
+  }
+  return true;
 }

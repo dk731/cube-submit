@@ -21,7 +21,7 @@ var KTDatatablesServerSide = (function () {
         className: "row-selected",
       },
       ajax: {
-        url: "queu_table",
+        url: "query_table",
       },
       columns: [
         { data: "id" },
@@ -29,6 +29,7 @@ var KTDatatablesServerSide = (function () {
         { data: "note" },
         { data: "submited" },
         { data: "status" },
+        { data: "likes" },
       ],
       columnDefs: [
         // {

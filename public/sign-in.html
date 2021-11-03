@@ -63,16 +63,16 @@ License: For each use you must have a valid license purchased only from above li
 							<div class="text-center">
 								
 								<!--begin::Google link-->
-								<a href="#" class="btn btn-flex flex-center btn-light btn-lg w-100 mb-5" id="google_btn">
-								<img alt="Logo" src="assets/media/svg/brand-logos/google-icon.svg" class="h-20px me-3" />Continue with Google</a>
+								<div class="btn btn-flex flex-center btn-light btn-lg w-100 mb-5" id="google_btn">
+								<img alt="Logo" src="assets/media/svg/brand-logos/google-icon.svg" class="h-20px me-3" />Continue with Google</div>
 								<!--end::Google link-->
 								<!--begin::Google link-->
 								<div class="btn btn-flex flex-center btn-light btn-lg w-100 mb-5" id="github_btn"> 
 								<img alt="Logo" src="assets/media/svg/brand-logos/github-1.svg" class="h-20px me-3" />Continue with GitHub</div>
 								<!--end::Google link-->
 								<!--begin::Google link-->
-								<a href="#" class="btn btn-flex flex-center btn-light btn-lg w-100">
-								<img alt="Logo" src="assets/media/svg/brand-logos/facebook-4.svg" class="h-20px me-3" />Continue with Facebook</a>
+								<div class="btn btn-flex flex-center btn-light btn-lg w-100 mb-5" id="facebook_btn">
+								<img alt="Logo" src="assets/media/svg/brand-logos/facebook-4.svg" class="h-20px me-3" />Continue with Facebook</div>
 								<!--end::Google link-->
 							</div>
 							<!--end::Actions-->
@@ -109,6 +109,28 @@ License: For each use you must have a valid license purchased only from above li
 		<!--end::Javascript-->
 		<script src="https://apis.google.com/js/api:client.js"></script>
 		<script src="js/sign-in.js"></script>
+
+		<script>
+			window.fbAsyncInit = function() {
+				FB.init({
+				appId      : '867247300821959',
+				cookie     : true,
+				xfbml      : true,
+				version    : 'v2.7'
+				});
+				
+				FB.AppEvents.logPageView();   
+				
+			};
+			
+			(function(d, s, id){
+				var js, fjs = d.getElementsByTagName(s)[0];
+				if (d.getElementById(id)) {return;}
+				js = d.createElement(s); js.id = id;
+				js.src = "https://connect.facebook.net/en_US/sdk.js";
+				fjs.parentNode.insertBefore(js, fjs);
+				}(document, 'script', 'facebook-jssdk'));
+		</script>
 	</body>
 	<!--end::Body-->
 </html>
