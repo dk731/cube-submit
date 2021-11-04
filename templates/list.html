@@ -23,6 +23,7 @@
 		<!--begin::Global Stylesheets Bundle(used by all pages)-->
 		<link href="assets/plugins/global/plugins.bundle.css" rel="stylesheet" type="text/css" />
 		<link href="assets/css/style.bundle.css" rel="stylesheet" type="text/css" />
+		<link href="css/custom.css" rel="stylesheet" type="text/css" />
 		<!--end::Global Stylesheets Bundle-->
 	</head>
 	<!--end::Head-->
@@ -254,7 +255,7 @@
 														<label class="required fs-6 fw-bold mb-2">Title</label>
 														<!--end::Label-->
 														<!--begin::Input-->
-														<input type="text" class="form-control form-control-solid" placeholder="" name="note" value="" />
+														<input type="text" class="form-control form-control-solid" placeholder="" name="note" value="" id="note_input" />
 														<!--end::Input-->
 													</div>
 													<!--end::Input group-->
@@ -274,12 +275,13 @@
                 <!--begin::Info-->
                 <div class="ms-4">
                     <h3 class="fs-5 fw-bolder text-gray-900 mb-1">Drop files here or click to upload.</h3>
-                    <span class="fs-7 fw-bold text-gray-400">Upload up to 10 files</span>
+                    <span class="fs-7 fw-bold text-gray-400">Upload up to 5 files</span>
                 </div>
                 <!--end::Info-->
             </div>
         </div>
         <!--end::Dropzone-->
+		<input type="hidden" class="form-control form-control-solid" placeholder="" name="files_upload" value="" />
     </div>
     <!--end::Input group-->
 
@@ -290,7 +292,7 @@
 											<!--begin::Modal footer-->
 											<div class="modal-footer flex-center">
 												<!--begin::Button-->
-												<button type="reset" id="kt_modal_add_customer_cancel" class="btn btn-light me-3">Discard</button>
+												<button type="reset" id="kt_modal_add_customer_cancel" class="btn btn-light me-3">Close</button>
 												<!--end::Button-->
 												<!--begin::Button-->
 												<button type="submit" id="kt_modal_add_customer_submit" class="btn btn-primary">

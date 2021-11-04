@@ -1,8 +1,9 @@
 const { parse: parseQuery } = require("querystring");
+let formidable = require("express-formidable");
 const cookie_parser = require("cookie-parser");
 const express = require("express");
 const sqlite3 = require("sqlite3");
-const axios = require("axios").default;
+const axios = require("axios");
 const uuid = require("uuid");
 const path = require("path");
 const fs = require("fs");
@@ -59,7 +60,7 @@ const UNLIKABLE_STATUSES = [
 ];
 
 const RES_SUCCESS = JSON.stringify({ success: true });
-const RES_FAIL = JSON.stringify({ success: true });
+const RES_FAIL = JSON.stringify({ success: false });
 
 var db = new sqlite3.Database("users_data.db", (err) => {
   if (err) {
@@ -75,9 +76,11 @@ const GITHUB_CLIENT_SECRET = "2efd546aa39c3fbccc6eff4433aa8225ce4a7975";
 
 const { OAuth2Client } = require("google-auth-library");
 const e = require("express");
+const { response, request } = require("express");
 const client = new OAuth2Client(GOOGLE_CLIENT_ID);
 
 const DEFUALT_PICTURE = "..asdalksjdm";
+const JOBS_CODE_DIR = path.resolve(__dirname, "jobs_folder");
 
 const app = express();
 const port = 3000;
@@ -104,6 +107,19 @@ app.use(express.static(path.join(__dirname, "public")));
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 app.use(cookie_parser());
+app.use(
+  formidable({
+    encoding: "utf-8",
+    uploadDir: path.join(__dirname, "uploaded_files_tmp"),
+    multiples: true,
+    keepExtensions: true,
+    maxFileSize: 3 * 1024 * 1024,
+    filter: function ({ name, originalFilename, mimetype }) {
+      console.log(name);
+      return false;
+    },
+  })
+);
 
 app.get("/", (request, response) => {
   check_session(request.cookies)
@@ -391,44 +407,6 @@ app.get("/toggle_like", (request, response) => {
                     }
                   );
                 });
-
-                // new Promise((resolve, reject) => {
-                //   if (like_row) {
-                //     db.serialize(() => {
-                //       db.run("DELETE FROM likes WHERE likes.id = ?", [
-                //         like_row.id,
-                //       ]).run(
-                //         "UPDATE jobs SET likes = likes - 1 WHERE jobs.id = ?",
-                //         [request.query.job_id],
-                //         (err) => {
-                //           (err) => {
-                //             if (err) reject("Was not able to add like");
-                //             resolve(true);
-                //           };
-                //         }
-                //       );
-                //     });
-                //   } else {
-                //     db.serialize(() => {
-                //       db.run(
-                //         "INSERT INTO likes (id, user_id, job_id, whn) VALUES((SELECT IFNULL(MAX(a.id), 0) + 1 FROM likes a), ?, ?, ?)",
-                //         [cur_sess.user_id, request.query.job_id, Date.now()]
-                //       ).run(
-                //         "UPDATE jobs SET likes = likes + 1 WHERE jobs.id = ?",
-                //         [request.query.job_id],
-                //         (err) => {
-                //           (err) => {
-                //             if (err) reject("Was not able to add like");
-                //             resolve(true);
-                //           };
-                //         }
-                //       );
-                //     }).then;
-                //   }
-                // }).then(
-                //   (res) => {},
-                //   (rej) => {}
-                // );
               }
             );
           }
@@ -480,7 +458,7 @@ app.get("/tokensignin", (request, response) => {
     (cur_sess) => {
       response
         .cookie("session", request.cookies["session"], {
-          expires: new Date(Date.now() + 86400000),
+          maxAge: 86400000,
           httpOnly: true,
         })
         .status(200)
@@ -502,6 +480,73 @@ app.get("/tokensignin", (request, response) => {
       }
     }
   );
+});
+
+app.post("/upload_job", (request, response) => {
+  check_session(request.cookies)
+    .then(
+      (cur_sess) => {
+        const FILE_LIST = Object.values(request.files);
+        if (FILE_LIST > 5) throw "Too many files";
+        if ("note" in request.fields == false || request.fields.note.length < 5)
+          throw "Note is to small";
+        if (FILE_LIST.find((el) => el.name == "main.py") == undefined)
+          throw "No main.py file was found";
+
+        db.get(
+          "SELECT IFNULL(MAX(id), 0) new_id FROM jobs",
+          [],
+          (err, id_row) => {
+            if (err) throw "Was not able to get last job id";
+            db.run(
+              "INSERT INTO jobs(id, user_id, note, submited, status, likes) VALUES(?, ?, ?, ?, 'submited', 0)",
+              [
+                id_row.new_id + 1,
+                cur_sess.user_id,
+                request.fields.note,
+                Date.now(),
+              ],
+              (err) => {
+                if (err) throw "Was not able to inser new job";
+
+                const cur_job_dir = path.resolve(
+                  JOBS_CODE_DIR,
+                  (id_row.new_id + 1).toString()
+                );
+
+                fs.mkdirSync(cur_job_dir);
+
+                FILE_LIST.forEach((file) => {
+                  fs.rename(
+                    file.path,
+                    path.resolve(cur_job_dir, file.name),
+                    (err) => {
+                      if (err) console.log(err);
+                    }
+                  );
+                });
+
+                response.status(200).send(RES_SUCCESS);
+              }
+            );
+          }
+        );
+      },
+      (rej) => {
+        throw "Unauthorized upload";
+      }
+    )
+    .catch((err) => {
+      Object.values(request.files).forEach((file) => {
+        // Remove all temp files if error occured
+        fs.unlink(file.path, (err) => {
+          if (err) console.log(err);
+        });
+      });
+
+      response.status(200).send(RES_FAIL);
+    });
+  console.log(request);
 });
 
 app.listen(port, () => {

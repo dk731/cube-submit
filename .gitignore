@@ -118,5 +118,8 @@ dist
 .pnp.*
 
 # custom
+users_data.sqbpro
 
-users_data.db
+uploaded_files_tmp/*
+
+jobs_folder/*
