@@ -7,101 +7,19 @@ const axios = require("axios");
 const uuid = require("uuid");
 const path = require("path");
 const fs = require("fs");
+const _ = require("./const_definitions"); // Import all constant definitions
 
-const STATUSES = {
-  SUBMITED: {
-    value: "submited",
-    render:
-      "<div class='row'><div class='col-12 d-flex justify-content-center text-center'><span class='badge badge-light-primary'>submited</span></div></div>",
-  },
-  VALIDATING: {
-    value: "validating",
-    render:
-      "<div class='row'><div class='col-12 d-flex justify-content-center text-center'><span class='badge badge-light-dark'>validating</span></div></div>",
-  },
-  PENDING: {
-    value: "pending",
-    render:
-      "<div class='row'><div class='col-12 d-flex justify-content-center text-center'><span class='badge badge-light-warning'>pending</span></div></div>",
-  },
-  RUNNING: {
-    value: "running",
-    render:
-      "<div class='row'><div class='col-12 d-flex justify-content-center text-center'><span class='badge badge-light-info'>running</span></div></div>",
-  },
-  VOTING: {
-    value: "voting",
-    render:
-      "<div class='row'><div class='col-12 d-flex justify-content-center text-center'><span class='badge badge-success'>voting</span></div></div>",
-  },
-  DONE: {
-    value: "done",
-    render:
-      "<div class='row'><div class='col-12 d-flex justify-content-center text-center'><span class='badge badge-light-success'>done</span></div></div>",
-  },
-  CANCELED: {
-    value: "canceled",
-    render:
-      "<div class='row'><div class='col-12 d-flex justify-content-center text-center'><span class='badge badge-light-danger'>canceled</span></div></div>",
-  },
-  ERROR: {
-    value: "error",
-    render:
-      "<div class='row'><div class='col-12 d-flex justify-content-center text-center'><span class='badge badge-danger'>error</span></div></div>",
-  },
-};
+const { OAuth2Client } = require("google-auth-library");
+const client = new OAuth2Client(GOOGLE_CLIENT_ID);
 
-const UNLIKABLE_STATUSES = [
-  STATUSES.SUBMITED.value,
-  STATUSES.VALIDATING.value,
-  STATUSES.PENDING.value,
-  STATUSES.CANCELED.value,
-  STATUSES.ERROR.value,
-];
-
-const RES_SUCCESS = JSON.stringify({ success: true });
-const RES_FAIL = JSON.stringify({ success: false });
-
-var db = new sqlite3.Database("users_data.db", (err) => {
+const db = new sqlite3.Database("users_data.db", (err) => {
   if (err) {
     return console.error(err.message);
   }
   console.log("Connected to the in-memory SQlite database.");
 });
 
-const GOOGLE_CLIENT_ID =
-  "589100687475-a5os5k6fob930dm7ns7fvmar32p71qrp.apps.googleusercontent.com";
-const GITHUB_CLIENT_ID = "e770e6440fbaac8200a7";
-const GITHUB_CLIENT_SECRET = "2efd546aa39c3fbccc6eff4433aa8225ce4a7975";
-
-const { OAuth2Client } = require("google-auth-library");
-const e = require("express");
-const { response, request } = require("express");
-const client = new OAuth2Client(GOOGLE_CLIENT_ID);
-
-const DEFUALT_PICTURE = "..asdalksjdm";
-const JOBS_CODE_DIR = path.resolve(__dirname, "jobs_folder");
-
 const app = express();
-const port = 3000;
-
-var ASIDE_HTML_FILE;
-var LIST_HTML_FILE;
-
-fs.readFile(
-  path.resolve(__dirname, "templates/", "aside.html"),
-  (err, data) => {
-    if (err) throw err;
-
-    ASIDE_HTML_FILE = data.toString("utf-8");
-  }
-);
-
-fs.readFile(path.resolve(__dirname, "templates/", "list.html"), (err, data) => {
-  if (err) throw err;
-
-  LIST_HTML_FILE = data.toString("utf-8");
-});
 
 app.use(express.static(path.join(__dirname, "public")));
 app.use(express.json());
@@ -129,16 +47,20 @@ app.get("/", (request, response) => {
 
         if (object_empty(request.query)) {
           var aside_atr = "{:MENU1:}";
+          var list_layout = LIST_VIEWS.MAIN;
 
           switch (cur_params.active_page) {
             case "main":
               aside_atr = "{:MENU1:}";
+              list_layout = LIST_VIEWS.MAIN;
               break;
             case "my_jobs":
               aside_atr = "{:MENU2:}";
+              list_layout = LIST_VIEWS.MY_JOBS;
               break;
             case "leader":
               aside_atr = "{:MENU3:}";
+              list_layout = LIST_VIEWS.LEADER;
               break;
             default:
               response.status(301).redirect("/?menu=main"); // If not active page was found, redirect to main page
@@ -146,26 +68,23 @@ app.get("/", (request, response) => {
           }
 
           db.get(
-            "SELECT avatar FROM users WHERE users.id = (SELECT user_id FROM sessions WHERE sessions.session_id = ?)",
-            [request.cookies.session],
+            "SELECT avatar FROM users WHERE users.id = ?",
+            [cur_sess.user_id],
             (err, row) => {
               if (err) throw err;
 
               if (row) {
-                response
-                  .status(200)
-                  .send(
-                    LIST_HTML_FILE.replace(
-                      new RegExp("{:AVATAR:}", "g"),
-                      row.avatar
-                    ).replace(
+                response.status(200).send(
+                  LIST_HTML_FILE.replace(/{:AVATAR:}/g, row.avatar) // Insert avatsrs
+                    .replace(/{:LIST_LAY:}/, list_layout) // Inser List layout
+                    .replace(
                       "{:ASIDE:}",
                       ASIDE_HTML_FILE.replace(aside_atr, "here show").replace(
-                        "{:MENU1:}|{:MENU2:}|{:MENU3:}",
+                        /{:MENU1:}|{:MENU2:}|{:MENU3:}/,
                         ""
                       )
                     )
-                  );
+                );
               } else {
                 throw "ERORR";
               }
@@ -203,7 +122,7 @@ app.get("/query_table", (request, response) => {
         const sql_user_req =
           "(SELECT users.username FROM users WHERE users.id = jobs.user_id)";
 
-        const sql_fields_main = `SELECT jobs.id, ${sql_user_req} username, jobs.user_id, jobs.note, jobs.submited, jobs.status, jobs.likes, ${sql_cur_usr_likes} usr_like FROM jobs WHERE `;
+        const sql_fields_main = `SELECT jobs.id, ${sql_user_req} username, jobs.user_id, jobs.note, jobs.whn, jobs.status, jobs.likes, ${sql_cur_usr_likes} usr_like FROM jobs WHERE `;
         const sql_count_main = "SELECT count(*) cnt FROM jobs WHERE ";
 
         const sql_filter_list = [];
@@ -267,56 +186,45 @@ app.get("/query_table", (request, response) => {
               var tmp_obj = {};
 
               request.query.columns.forEach((in_el) => {
-                if (in_el.data == "likes") {
-                  if (
-                    el.user_id == cur_sess.user_id ||
-                    UNLIKABLE_STATUSES.includes(el.status)
-                  ) {
-                    // Pass just number
-                    tmp_obj[in_el.data] = el.likes;
-                  } else {
-                    // Pass button
-                    if (el.usr_like) {
-                      tmp_obj[in_el.data] = `
-                      <div class="row">
-                        <div class="col-4 d-flex justify-content-center align-items-center"><div>${
-                          el.likes
-                        }</div></div>
-                        <div class="col-6">
-                          <div class="btn btn-sm btn-icon btn-outline-danger btn-hover-rotate-${
-                            (i & 1) == 0 ? "end" : "start"
-                          } me-1 btn-outline" onclick="on_like_click(${
-                        el.id
-                      })"><i class="fas fa-heart-broken text-black"></i></div>
-                        </div>
-                      </div>`;
-                    } else {
-                      tmp_obj[in_el.data] = `
-                      <div class="row">
-                        <div class="col-4 d-flex justify-content-center align-items-center"><div>${
-                          el.likes
-                        }</div></div>
-                        <div class="col-6">
-                        <div class="btn btn-sm btn-icon btn-danger btn-hover-rotate-${
-                          (i & 1) == 0 ? "end" : "start"
-                        } me-1" onclick="on_like_click(${
-                        el.id
-                      })"><i class="fas fa-heart text-white"></i></div>
-                        </div>
-                      </div>`;
+                switch (in_el.data) {
+                  case "likes":
+                    {
+                      // Check if row is was not created by current user, if was then send just number else send like button
+                      if (
+                        el.user_id == cur_sess.user_id ||
+                        UNLIKABLE_STATUSES.includes(el.status)
+                      ) {
+                        tmp_obj["likes"] = el.likes;
+                      } else {
+                        tmp_obj["likes"] = el.usr_like
+                          ? UNLIKE_BTN(el.likes, el.id, i)
+                          : LIKE_BTN(el.likes, el.id, i);
+                      }
                     }
-                  }
-                } else if (in_el.data == "status") {
-                  const status_res = Object.values(STATUSES).find(
-                    (sel) => sel.value == el[in_el.data]
-                  );
+                    break;
+                  case "status":
+                    {
+                      const status_res = Object.values(STATUSES).find(
+                        (sel) => sel.value == el["status"]
+                      );
 
-                  if (status_res) {
-                    tmp_obj[in_el.data] = status_res.render;
-                  } else {
-                    tmp_obj[in_el.data] = el[in_el.data];
-                  }
-                } else tmp_obj[in_el.data] = el[in_el.data];
+                      tmp_obj["status"] = status_res
+                        ? status_res.render
+                        : el["status"];
+                    }
+                    break;
+                  case "files":
+                    tmp_obj["files"] = "qwe";
+                    break;
+                  case "whn":
+                    tmp_obj["whn"] = new Date(el.whn).toLocaleDateString();
+                    break;
+                  default:
+                    {
+                      tmp_obj[in_el.data] = el[in_el.data];
+                    }
+                    break;
+                }
               });
 
               out_data.push(tmp_obj);
@@ -488,8 +396,12 @@ app.post("/upload_job", (request, response) => {
       (cur_sess) => {
         const FILE_LIST = Object.values(request.files);
         if (FILE_LIST > 5) throw "Too many files";
-        if ("note" in request.fields == false || request.fields.note.length < 5)
-          throw "Note is to small";
+        if (
+          "note" in request.fields == false ||
+          request.fields.note.length < 5 ||
+          request.fields.note.length > 25
+        )
+          throw "Invalid note";
         if (FILE_LIST.find((el) => el.name == "main.py") == undefined)
           throw "No main.py file was found";
 
@@ -499,7 +411,7 @@ app.post("/upload_job", (request, response) => {
           (err, id_row) => {
             if (err) throw "Was not able to get last job id";
             db.run(
-              "INSERT INTO jobs(id, user_id, note, submited, status, likes) VALUES(?, ?, ?, ?, 'submited', 0)",
+              "INSERT INTO jobs(id, user_id, note, status, likes, whn) VALUES(?, ?, ?, 'submited', 0, ?)",
               [
                 id_row.new_id + 1,
                 cur_sess.user_id,
@@ -549,8 +461,8 @@ app.post("/upload_job", (request, response) => {
   console.log(request);
 });
 
-app.listen(port, () => {
-  console.log(`Example app listening at http://localhost:${port}`);
+app.listen(APP_PORT, () => {
+  console.log(`Example app listening at http://localhost:${APP_PORT}`);
 });
 
 // Returns promise, if rejected - then cookie list does not contain active session, resolved - active session was found
@@ -657,8 +569,8 @@ function add_user(username, ext_id, type, avatar, response) {
 
         if (row.cnt == 0) {
           db.run(
-            "INSERT INTO users(id, username, type, ext_id, avatar) VALUES((SELECT IFNULL(MAX(id), 0) + 1 FROM users), ?, ?, ?, ?)",
-            [username, type, ext_id, avatar]
+            "INSERT INTO users(id, username, type, ext_id, avatar, whn) VALUES((SELECT IFNULL(MAX(id), 0) + 1 FROM users), ?, ?, ?, ?, ?)",
+            [username, type, ext_id, avatar, Date.now()]
           );
         } else {
           db.run(
@@ -673,7 +585,7 @@ function add_user(username, ext_id, type, avatar, response) {
   }).then((suc) => {
     response
       .cookie("session", set_session_id(ext_id), {
-        expires: new Date(Date.now() + 900000),
+        expires: new Date(Date.now() + SESSION_LENGTH),
         httpOnly: true,
       })
       .status(200)
@@ -686,7 +598,7 @@ function set_session_id(sub) {
   console.log("Adding new session with random string: ", random_str);
 
   db.run(
-    "INSERT INTO sessions(user_id, session_id, time, params) VALUES((SELECT id FROM users WHERE ext_id = ?), ?, ?, ?)",
+    "INSERT INTO sessions(user_id, session_id, whn, params) VALUES((SELECT id FROM users WHERE ext_id = ?), ?, ?, ?)",
     [sub, random_str, Date.now(), JSON.stringify({ active_page: "main" })]
   );
 
@@ -695,7 +607,7 @@ function set_session_id(sub) {
 
 function hidden_email(payload) {
   if ("email" in payload)
-    return payload.email.replace(/(\w{3})[\w.-]+@([\w.]+\w)/, "$1***@$2");
+    return payload.email.replace(/(\w{3})[\w.-]+@([\w.]+\w)/, "$1****@$2");
   else return "hidden_email";
 }
 
@@ -711,3 +623,16 @@ function object_empty(obj) {
   }
   return true;
 }
+
+function clear_expired_sessions() {
+  db.run(
+    "DELETE FROM sessions WHERE sessions.whn < ?",
+    [Date.now() - SESSION_LENGTH],
+    (err) => {
+      if (err) console.log("Error  during expired session clearing");
+    }
+  );
+}
+
+clear_expired_sessions();
+setTimeout(clear_expired_sessions, 43200000); // Clear expired session every hour

@@ -1,3 +1,11 @@
 .dz-progress {
   display: none;
 }
+
+.dz-success-mark {
+  display: none;
+}
+
+.dz-error-message {
+  display: none;
+}

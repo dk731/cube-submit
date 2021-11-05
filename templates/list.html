@@ -193,17 +193,11 @@
 								<!--begin::Card body-->
 								<div class="card-body pt-0">
 
-
 <!--begin::Datatable-->
 <table id="kt_datatable_example_1" class="table align-middle table-row-dashed table-striped fs-6 gy-5">
     <thead>
-    <tr class="text-start text-gray-400 fw-bolder fs-7 text-uppercase gs-0">
-        <th>Task ID</th>
-        <th>User</th>
-        <th>Notes</th>
-		<th>Submited on</th>
-        <th>Status</th>
-		<th>Likes</th>
+    <tr class="text-start text-gray-400 fw-bolder fs-7 text-uppercase gs-0" id="columns_holder">
+      {:LIST_LAY:}
     </tr>
     </thead>
     <tbody class="text-gray-600 fw-bold">
@@ -370,6 +364,15 @@
 			</span>
 			<!--end::Svg Icon-->
 		</div>
+
+    <script>
+      const current_columns = [];
+      Array.from(document.getElementById("columns_holder").children).forEach(
+        (el) => {
+          current_columns.push({data: el.getAttribute("db_name")});
+        }
+      );
+    </script>
 		<!--end::Scrolltop-->
 		<!--end::Main-->
 		<script>var hostUrl = "assets/";</script>
@@ -388,7 +391,6 @@
 		<!--end::Page Custom Javascript-->
 		<!--end::Javascript-->
 		<script src="js/list.js"></script>
-		<script src="js/file.js"></script>
 	</body>
 	<!--end::Body-->
 </html>

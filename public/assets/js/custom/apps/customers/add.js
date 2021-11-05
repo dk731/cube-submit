@@ -34,8 +34,12 @@ var KTModalCustomersAdd = (function () {
       fields: {
         note: {
           validators: {
-            notEmpty: {
-              message: "Please provide some information about your submit",
+            callback: {
+              callback: function (input) {
+                return input.value.length >= 5 && input.value.length <= 25;
+              },
+              message:
+                "Please provide some information about your submit (min: 5, max: 25 characters)",
             },
           },
         },
@@ -57,6 +61,9 @@ var KTModalCustomersAdd = (function () {
                     valid: false,
                     message: "Selected main.py file is empty",
                   };
+
+                if (drop_zone.files.length > 5)
+                  return { valid: false, message: "Max amount of files is 5!" };
 
                 return true;
               },
@@ -98,23 +105,24 @@ var KTModalCustomersAdd = (function () {
     });
 
     drop_zone.on("error", function (file, ret) {
-      Swal.fire({
-        text: "Error occured during file upload, try again later",
-        icon: "error",
-        buttonsStyling: false,
-        confirmButtonText: "Ok",
-        customClass: {
-          confirmButton: "btn btn-primary",
-        },
-      }).then(function (result) {
-        submitButton.setAttribute("data-kt-indicator", "off");
-        drop_zone.removeAllFiles();
-        submitButton.disabled = false;
-        modal.hide();
+      if (ret != "You can not upload any more files.")
+        Swal.fire({
+          text: "Error occured during file upload, try again later",
+          icon: "error",
+          buttonsStyling: false,
+          confirmButtonText: "Ok",
+          customClass: {
+            confirmButton: "btn btn-primary",
+          },
+        }).then(function (result) {
+          submitButton.setAttribute("data-kt-indicator", "off");
+          drop_zone.removeAllFiles();
+          submitButton.disabled = false;
+          modal.hide();
 
-        form.reset();
-        modal.hide();
-      });
+          form.reset();
+          modal.hide();
+        });
     });
 
     drop_zone.on("successmultiple", function (file, ret) {
@@ -123,6 +131,7 @@ var KTModalCustomersAdd = (function () {
         swal_icon = "success";
         swal_text =
           "Successfully uploaded files, your job should apper in main jobs list soon!";
+        dt.ajax.reload(null, false);
       } else {
         swal_icon = "warning";
         swal_text = "Server responded with error, try again later";

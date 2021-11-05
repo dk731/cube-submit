@@ -23,14 +23,7 @@ var KTDatatablesServerSide = (function () {
       ajax: {
         url: "query_table",
       },
-      columns: [
-        { data: "id" },
-        { data: "username" },
-        { data: "note" },
-        { data: "submited" },
-        { data: "status" },
-        { data: "likes" },
-      ],
+      columns: current_columns,
       columnDefs: [
         // {
         //   targets: 0,
@@ -91,7 +84,6 @@ var KTDatatablesServerSide = (function () {
         //   },
         // },
       ],
-      // Add data-filter attribute
       createdRow: function (row, data, dataIndex) {
         $(row).find("td:eq(4)").attr("data-filter", data.CreditCardType);
       },
