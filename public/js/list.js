@@ -367,11 +367,33 @@ KTUtil.onDOMContentLoaded(function () {
 });
 
 function on_like_click(job_id) {
-  fetch("/toggle_like?job_id=" + job_id)
+  fetch(`/cancle_job?job_id=${job_id}`)
     .then((res) => res.json())
     .then((data) => {
       if (data.success) {
         dt.ajax.reload(null, false);
       }
     });
+}
+
+function on_cancle_click(job_id) {
+  Swal.fire({
+    title: "<strong>Are you sure you want to cancle this job?</strong>",
+    icon: "warning",
+    html: `Job with ID: <b>${job_id}</b> will be cancled and removed from main excecution queue. <b>No one except you will be able to see or like this job</b>`,
+    showCloseButton: true,
+    focusConfirm: false,
+    confirmButtonText: "Do it!",
+  }).then(function (ret) {
+    if (ret.isConfirmed) {
+      fetch(`/cancle_job?job_id=${job_id}`)
+        .then((res) => res.json())
+        .then((data) => {
+          if (data.success) {
+            dt.ajax.reload(null, false);
+          }
+        });
+    }
+    console.log(ret);
+  });
 }

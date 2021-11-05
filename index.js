@@ -12,6 +12,7 @@ const fs = require("fs");
 const _ = require("./const_definitions"); // Import all constant definitions
 
 const { OAuth2Client } = require("google-auth-library");
+const { request, response } = require("express");
 const client = new OAuth2Client(GOOGLE_CLIENT_ID);
 
 const db = new sqlite3.Database("users_data.db", (err) => {
@@ -194,14 +195,14 @@ app.get("/query_table", (request, response) => {
                     {
                       // Check if row is was not created by current user, if was then send just number else send like button
                       if (
-                        el.user_id == cur_sess.user_id ||
-                        UNLIKABLE_STATUSES.includes(el.status)
+                        el.user_id != cur_sess.user_id ||
+                        LIKABLE_STATUSES.includes(el.status)
                       ) {
-                        tmp_obj["likes"] = el.likes;
-                      } else {
                         tmp_obj["likes"] = el.usr_like
                           ? UNLIKE_BTN(el.likes, el.id, i)
                           : LIKE_BTN(el.likes, el.id, i);
+                      } else {
+                        tmp_obj["likes"] = el.likes;
                       }
                     }
                     break;
@@ -221,6 +222,11 @@ app.get("/query_table", (request, response) => {
                     break;
                   case "whn":
                     tmp_obj["whn"] = new Date(el.whn).toLocaleDateString();
+                    break;
+                  case "cancle":
+                    tmp_obj["cancle"] = CANCLABLE_STATUSES.includes(el.status)
+                      ? ACTIVE_CANCLE_BTN(el.id)
+                      : DISABLED_CANCLE_BTN();
                     break;
                   default:
                     {
@@ -245,11 +251,46 @@ app.get("/query_table", (request, response) => {
         });
       },
       (rej) => {
-        throw "User not in authorized";
+        throw "User is not authorized";
       }
     )
     .catch((e) => {
       response.send(JSON.stringify({ success: false }));
+    });
+});
+
+app.get("/cancle_job", (request, response) => {
+  check_session(request.cookies)
+    .then(
+      (cur_sess) => {
+        db.get(
+          "SELECT jobs.status FROM jobs WHERE jobs.user_id = ? AND jobs.id = ?",
+          [cur_sess.user_id, request.query.job_id],
+          (err, row) => {
+            if (err) throw "Error during check if current user is job creator";
+
+            if (!row.status) return response.status(200).send(RES_FAIL);
+
+            if (!CANCLABLE_STATUSES.includes(row.status))
+              return response.status(200).send(RES_FAIL);
+
+            db.run(
+              "UPDATE jobs SET status = ? WHERE jobs.id = ?",
+              ["canceled", request.query.job_id],
+              (err) => {
+                if (err) response.status(500).send(RES_FAIL);
+                else response.status(200).send(RES_SUCCESS);
+              }
+            );
+          }
+        );
+      },
+      (rej) => {
+        throw "Cant cancle job withput active session";
+      }
+    )
+    .catch((err) => {
+      response.status(500).send(RES_FAIL);
     });
 });
 

@@ -30,6 +30,11 @@ global.UNLIKE_BTN = (likes_amount, job_id, row_id) =>
 global.FILES_BUTTON = (job_id) =>
   `<a href="/get_job_files?job_id=${job_id}" download="job_${job_id}.zip" class="btn btn-info btn-hover-scale"><i class="bi bi-file-earmark-arrow-down-fill"></i> Files</a>`;
 
+global.ACTIVE_CANCLE_BTN = (job_id) =>
+  `<div class="btn btn-danger" onclick="on_cancle_click(${job_id})"><i class="bi bi-x-octagon"></i> Cancle</div>`;
+global.DISABLED_CANCLE_BTN = () =>
+  `<div class="btn btn-danger disabled"><i class="bi bi-x-octagon"></i> Cancle</div>`;
+
 // Statuses
 global.STATUSES = {
   SUBMITED: {
@@ -66,12 +71,16 @@ global.STATUSES = {
   },
 };
 
-global.UNLIKABLE_STATUSES = [
+global.LIKABLE_STATUSES = [
+  STATUSES.RUNNING.value,
+  STATUSES.VOTING.value,
+  STATUSES.DONE.value,
+];
+
+global.CANCLABLE_STATUSES = [
   STATUSES.SUBMITED.value,
   STATUSES.VALIDATING.value,
   STATUSES.PENDING.value,
-  STATUSES.CANCELED.value,
-  STATUSES.ERROR.value,
 ];
 
 // Lists
@@ -91,6 +100,7 @@ global.LIST_VIEWS = {
     { db_name: "status", name: "Status" },
     { db_name: "likes", name: "Likes" },
     { db_name: "files", name: "Files" },
+    { db_name: "cancle", name: "Cancle Job" },
   ]),
   LEADER: LIST_ROWS_R([
     { db_name: "id", name: "Task ID" },
