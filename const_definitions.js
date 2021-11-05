@@ -27,6 +27,9 @@ global.LIKE_BTN = (likes_amount, job_id, row_id) =>
 global.UNLIKE_BTN = (likes_amount, job_id, row_id) =>
   LIKES_R(likes_amount, job_id, row_id, "", "fa-heart-broken text-black");
 
+global.FILES_BUTTON = (job_id) =>
+  `<a href="/get_job_files?job_id=${job_id}" download="job_${job_id}.zip" class="btn btn-info btn-hover-scale"><i class="bi bi-file-earmark-arrow-down-fill"></i> Files</a>`;
+
 // Statuses
 global.STATUSES = {
   SUBMITED: {

@@ -3,10 +3,12 @@ let formidable = require("express-formidable");
 const cookie_parser = require("cookie-parser");
 const express = require("express");
 const sqlite3 = require("sqlite3");
+var zip = require("express-zip");
 const axios = require("axios");
 const uuid = require("uuid");
 const path = require("path");
 const fs = require("fs");
+
 const _ = require("./const_definitions"); // Import all constant definitions
 
 const { OAuth2Client } = require("google-auth-library");
@@ -75,6 +77,7 @@ app.get("/", (request, response) => {
 
               if (row) {
                 response.status(200).send(
+                  // Render
                   LIST_HTML_FILE.replace(/{:AVATAR:}/g, row.avatar) // Insert avatsrs
                     .replace(/{:LIST_LAY:}/, list_layout) // Inser List layout
                     .replace(
@@ -214,7 +217,7 @@ app.get("/query_table", (request, response) => {
                     }
                     break;
                   case "files":
-                    tmp_obj["files"] = "qwe";
+                    tmp_obj["files"] = FILES_BUTTON(el.id);
                     break;
                   case "whn":
                     tmp_obj["whn"] = new Date(el.whn).toLocaleDateString();
@@ -388,6 +391,44 @@ app.get("/tokensignin", (request, response) => {
       }
     }
   );
+});
+
+app.get("/get_job_files", (request, response) => {
+  check_session(request.cookies)
+    .then(
+      (cur_sess) => {
+        db.get(
+          "SELECT count(*) cnt FROM jobs WHERE jobs.user_id = ? AND jobs.id = ?",
+          [cur_sess.user_id, request.query.job_id],
+          (err, row) => {
+            if (err) throw "Error during check if current user is job creator";
+
+            if (row.cnt == 0) return response.status(200).send(RES_FAIL);
+            const current_dir = path.resolve(
+              JOBS_CODE_DIR,
+              request.query.job_id.toString()
+            );
+            const out_file = `job_${request.query.job_id}.zip`;
+
+            files_list = fs.readdirSync(current_dir);
+            files_list.forEach(function (file, i, arr) {
+              arr[i] = { path: path.resolve(current_dir, file), name: file };
+            });
+
+            response.zip(files_list, out_file, (err, bytes) => {
+              if (err)
+                console.log("Error happened during upload of job files: ", err);
+            });
+          }
+        );
+      },
+      (rej) => {
+        throw "You cannot download files without active session";
+      }
+    )
+    .catch((e) => {
+      response.status(200).send(RES_FAIL);
+    });
 });
 
 app.post("/upload_job", (request, response) => {
@@ -635,4 +676,4 @@ function clear_expired_sessions() {
 }
 
 clear_expired_sessions();
-setTimeout(clear_expired_sessions, 43200000); // Clear expired session every hour
+setTimeout(clear_expired_sessions, 43200000); // Clear expired session every 12 hours
