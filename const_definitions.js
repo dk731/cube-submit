@@ -5,8 +5,7 @@ const fs = require("fs");
 const ROW_R = (row) => `<th db_name="${row.db_name}">${row.name}</th>`;
 
 // Create status bage with btn_type and display name
-const STATUS_BAGE_R = (btn_type, disp) =>
-  `<div class="col-6"><div class='col-12 d-flex justify-content-center text-center'><span class='badge badge-${btn_type}'>${disp}</span></div></div>`;
+const STATUS_BAGE_R = (btn_type, disp) => `<div class="col-6"><div class='col-12 d-flex justify-content-center text-center'><span class='badge badge-${btn_type}'>${disp}</span></div></div>`;
 
 // Create list columns passing list with {db_name, name}
 const LIST_ROWS_R = (rows_list) => {
@@ -15,39 +14,70 @@ const LIST_ROWS_R = (rows_list) => {
   return res;
 };
 
-const LIKES_R = (likes_amount, job_id, row_id, btn_classes, i_classes) =>
-  `<div class="row"><div class="col-4 d-flex justify-content-center align-items-center"><div>${likes_amount}</div></div><div class="col-6"><div class="btn btn-sm btn-icon btn-outline-danger btn-hover-rotate-${
-    (row_id & 1) == 0 ? "end" : "start"
-  } me-1 btn-outline ${btn_classes}" onclick="on_like_click(${job_id})"><i class="fas ${i_classes}"></i></div></div></div>`;
+const LIKES_R = (likes_amount, job_id, row_id, btn_classes, i_classes) => `<div class="row"><div class="col-4 d-flex justify-content-center align-items-center"><div>${likes_amount}</div></div><div class="col-6"><div class="btn btn-sm btn-icon btn-outline-danger btn-hover-rotate-${(row_id & 1) == 0 ? "end" : "start"} me-1 btn-outline ${btn_classes}" onclick="on_like_click(${job_id})"><i class="fas ${i_classes}"></i></div></div></div>`;
 
 // Renders
-global.LIKE_BTN = (likes_amount, job_id, row_id) =>
-  LIKES_R(likes_amount, job_id, row_id, "btn-danger", "fa-heart text-white");
+global.VIDEO_BTN = (url) => `<a href='${url}' target='_blank'>Open Video</a>`;
 
-global.UNLIKE_BTN = (likes_amount, job_id, row_id) =>
-  LIKES_R(likes_amount, job_id, row_id, "", "fa-heart-broken text-black");
+global.LIKE_BTN = (likes_amount, job_id, row_id) => LIKES_R(likes_amount, job_id, row_id, "btn-danger", "fa-heart text-white");
 
-global.FILES_BUTTON = (job_id) =>
-  `<a href="/get_job_files?job_id=${job_id}" download="job_${job_id}.zip" class="btn btn-sm btn-info btn-hover-scale"><i class="bi bi-file-earmark-arrow-down-fill"></i> Files</a>`;
+global.UNLIKE_BTN = (likes_amount, job_id, row_id) => LIKES_R(likes_amount, job_id, row_id, "", "fa-heart-broken text-black");
 
-global.ACTIVE_CANCLE_BTN = (job_id) =>
-  `<div class="btn btn-sm btn-danger btn-hover-rise" onclick="on_cancle_click(${job_id})"><i class="bi bi-x-octagon"></i> Cancle</div>`;
-global.DISABLED_CANCLE_BTN = () =>
-  `<div class="btn btn-sm btn-danger disabled"><i class="bi bi-x-octagon"></i> Cancle</div>`;
+global.FILES_BUTTON = (job_id) => `<a href="/get_job_files?job_id=${job_id}" download="job_${job_id}.zip" class="btn btn-sm btn-info btn-hover-scale"><i class="bi bi-file-earmark-arrow-down-fill"></i> Files</a>`;
 
-global.ERROR_BUTTON_MODAL = (title, err) =>
+global.ACTIVE_CANCLE_BTN = (job_id) => `<div class="btn btn-sm btn-danger btn-hover-rise" onclick="on_cancle_click(${job_id})"><i class="bi bi-x-octagon"></i> Cancle</div>`;
+global.DISABLED_CANCLE_BTN = () => `<div class="btn btn-sm btn-danger disabled"><i class="bi bi-x-octagon"></i> Cancle</div>`;
+
+global.ERROR_BUTTON_MODAL = (title, err, i) =>
   `
-<div class="col-6"><div class="btn btn-sm btn-icon btn-light-info text-white me-1" data-bs-toggle="modal" data-bs-target="#kt_modal_1"><i class="bi bi-info-square-fill"></i></div></div>
-<div class="modal fade" tabindex="-1" id="kt_modal_1">
+<div class="col-6"><div class="btn btn-sm btn-icon btn-light-info text-white me-1" data-bs-toggle="modal" data-bs-target="#kt_modal_${i}"><i class="bi bi-info-square-fill"></i></div></div>
+<div class="modal fade" tabindex="-1" id="kt_modal_${i}">
   <div class="modal-dialog"><div class="modal-content">
     <div class="modal-header"><h5 class="modal-title">${title}</h5></div>
-    <div class="modal-body"><p>${err}</p></div>
+    <div class="modal-body"><pre>${err}</pre></div>
     <div class="modal-footer"><button type="button" class="btn btn-light" data-bs-dismiss="modal">Close</button></div>
   </div></div>
 </div>`;
 
-// Statuses
-global.STATUSES = {
+global.LIST_VIEWS = {
+  main: LIST_ROWS_R([
+    { db_name: "id", name: "Task ID" },
+    { db_name: "username", name: "User" },
+    { db_name: "note", name: "Notes" },
+    { db_name: "whn", name: "Submited On" },
+    { db_name: "status", name: "Status" },
+    { db_name: "likes", name: "Likes" },
+  ]),
+  my_jobs: LIST_ROWS_R([
+    { db_name: "id", name: "Task ID" },
+    { db_name: "note", name: "Notes" },
+    { db_name: "whn", name: "Submited On" },
+    { db_name: "status", name: "Status" },
+    { db_name: "video_url", name: "Video" },
+    { db_name: "likes", name: "Likes" },
+    { db_name: "files", name: "Files" },
+    { db_name: "cancle", name: "Cancle Job" },
+  ]),
+  leader: LIST_ROWS_R([
+    { db_name: "id", name: "Task ID" },
+    { db_name: "username", name: "User" },
+    { db_name: "note", name: "Notes" },
+    { db_name: "whn", name: "Submited On" },
+    { db_name: "status", name: "Status" },
+    { db_name: "video_url", name: "Video" },
+    { db_name: "likes", name: "Likes" },
+  ]),
+
+  profile: LIST_ROWS_R([
+    { db_name: "id", name: "Task ID" },
+    { db_name: "note", name: "Notes" },
+    { db_name: "whn", name: "Submited On" },
+    { db_name: "video_url", name: "Video" },
+    { db_name: "likes", name: "Likes" },
+  ]),
+};
+
+global.global.STATUSES = {
   SUBMITED: {
     value: "submited",
     render: STATUS_BAGE_R("light-primary", "submited"),
@@ -82,48 +112,13 @@ global.STATUSES = {
   },
 };
 
-global.LIKABLE_STATUSES = [
-  STATUSES.RUNNING.value,
-  STATUSES.VOTING.value,
-  STATUSES.DONE.value,
-];
+global.PAGES_VIEWS_LIST = ["main", "my_jobs", "leader", "profile"];
 
-global.CANCLABLE_STATUSES = [
-  STATUSES.SUBMITED.value,
-  STATUSES.VALIDATING.value,
-  STATUSES.PENDING.value,
-];
+global.ASIDE_ATTRIBUTES = { main: /{:MENU1:}/g, my_jobs: /{:MENU2:}/g, leader: /{:MENU3:}/g, profile: /a^/ };
 
-// Lists
-global.LIST_VIEWS = {
-  MAIN: LIST_ROWS_R([
-    { db_name: "id", name: "Task ID" },
-    { db_name: "username", name: "User" },
-    { db_name: "note", name: "Notes" },
-    { db_name: "whn", name: "Submited On" },
-    { db_name: "status", name: "Status" },
-    { db_name: "likes", name: "Likes" },
-  ]),
-  MY_JOBS: LIST_ROWS_R([
-    { db_name: "id", name: "Task ID" },
-    { db_name: "note", name: "Notes" },
-    { db_name: "whn", name: "Submited On" },
-    { db_name: "status", name: "Status" },
-    { db_name: "likes", name: "Likes" },
-    { db_name: "files", name: "Files" },
-    { db_name: "cancle", name: "Cancle Job" },
-  ]),
-  LEADER: LIST_ROWS_R([
-    { db_name: "id", name: "Task ID" },
-    { db_name: "username", name: "User" },
-    { db_name: "note", name: "Notes" },
-    { db_name: "whn", name: "Submited On" },
-    { db_name: "status", name: "Status" },
-    { db_name: "likes", name: "Likes" },
-  ]),
+global.LIKABLE_STATUSES = [STATUSES.RUNNING.value, STATUSES.VOTING.value, STATUSES.DONE.value];
 
-  PROFILE: LIST_ROWS_R([{ db_name: "id", name: "Task ID" }]),
-};
+global.CANCLABLE_STATUSES = [STATUSES.SUBMITED.value, STATUSES.VALIDATING.value, STATUSES.PENDING.value];
 
 // Session
 global.SESSION_LENGTH = 86400;
@@ -132,8 +127,7 @@ global.RES_SUCCESS = JSON.stringify({ success: true });
 global.RES_FAIL = JSON.stringify({ success: false });
 
 // API
-global.GOOGLE_CLIENT_ID =
-  "589100687475-a5os5k6fob930dm7ns7fvmar32p71qrp.apps.googleusercontent.com";
+global.GOOGLE_CLIENT_ID = "589100687475-a5os5k6fob930dm7ns7fvmar32p71qrp.apps.googleusercontent.com";
 global.GITHUB_CLIENT_ID = "e770e6440fbaac8200a7";
 global.GITHUB_CLIENT_SECRET = "2efd546aa39c3fbccc6eff4433aa8225ce4a7975";
 
@@ -145,17 +139,19 @@ global.JOBS_CODE_DIR = path.resolve(__dirname, "jobs_folder");
 global.APP_PORT = 3000;
 
 // Files templates
-fs.readFile(
-  path.resolve(__dirname, "templates/", "aside.html"),
-  (err, data) => {
-    if (err) throw err;
-    global.ASIDE_HTML_FILE = data.toString("utf-8");
-  }
-);
+fs.readFile(path.resolve(__dirname, "templates/", "aside.html"), (err, data) => {
+  if (err) throw err;
+  global.ASIDE_HTML_FILE = data.toString("utf-8");
+});
 
-fs.readFile(path.resolve(__dirname, "templates/", "list.html"), (err, data) => {
+fs.readFile(path.resolve(__dirname, "templates/", "main.html"), (err, data) => {
   if (err) throw err;
   global.LIST_HTML_FILE = data.toString("utf-8");
+});
+
+fs.readFile(path.resolve(__dirname, "templates/", "profile.html"), (err, data) => {
+  if (err) throw err;
+  global.PROFILE_HTML_FILE = data.toString("utf-8");
 });
 
 //Files

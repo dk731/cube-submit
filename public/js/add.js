@@ -13,8 +13,7 @@ var drop_zone = new Dropzone("#kt_dropzonejs_example_1", {
 });
 
 drop_zone.on("sending", function (data, xhr, formData) {
-  if (!formData.has("note"))
-    formData.append("note", document.getElementById("note_input").value);
+  if (!formData.has("note")) formData.append("note", document.getElementById("note_input").value);
 });
 
 // Class definition
@@ -38,8 +37,7 @@ var KTModalCustomersAdd = (function () {
               callback: function (input) {
                 return input.value.length >= 5 && input.value.length <= 25;
               },
-              message:
-                "Please provide some information about your submit (min: 5, max: 25 characters)",
+              message: "Please provide some information about your submit (min: 5, max: 25 characters)",
             },
           },
         },
@@ -47,9 +45,7 @@ var KTModalCustomersAdd = (function () {
           validators: {
             callback: {
               callback: function (input) {
-                const main_file = drop_zone.files.find(
-                  (file) => file.name == "main.py"
-                );
+                const main_file = drop_zone.files.find((file) => file.name == "main.py");
                 if (!main_file)
                   return {
                     valid: false,
@@ -62,8 +58,7 @@ var KTModalCustomersAdd = (function () {
                     message: "Selected main.py file is empty",
                   };
 
-                if (drop_zone.files.length > 5)
-                  return { valid: false, message: "Max amount of files is 5!" };
+                if (drop_zone.files.length > 5) return { valid: false, message: "Max amount of files is 5!" };
 
                 return true;
               },
@@ -104,6 +99,13 @@ var KTModalCustomersAdd = (function () {
       modal.hide(); // Hide modal
     });
 
+    closeButton.addEventListener("click", function (e) {
+      e.preventDefault();
+
+      form.reset(); // Reset form
+      modal.hide(); // Hide modal
+    });
+
     drop_zone.on("error", function (file, ret) {
       console.log(ret);
       if (ret.includes("Server"))
@@ -130,8 +132,7 @@ var KTModalCustomersAdd = (function () {
       var swal_text, swal_icon;
       if (JSON.parse(ret).success) {
         swal_icon = "success";
-        swal_text =
-          "Successfully uploaded files, your job should apper in main jobs list soon!";
+        swal_text = "Successfully uploaded files, your job should apper in main jobs list soon!";
         dt.ajax.reload(null, false);
       } else {
         swal_icon = "warning";
@@ -182,9 +183,7 @@ var KTModalCustomersAdd = (function () {
   return {
     init: function () {
       // Elements
-      modal = new bootstrap.Modal(
-        document.querySelector("#kt_modal_add_customer")
-      );
+      modal = new bootstrap.Modal(document.querySelector("#kt_modal_add_customer"));
 
       form = document.querySelector("#kt_modal_add_customer_form");
       submitButton = form.querySelector("#kt_modal_add_customer_submit");
@@ -200,24 +199,3 @@ var KTModalCustomersAdd = (function () {
 KTUtil.onDOMContentLoaded(function () {
   KTModalCustomersAdd.init();
 });
-
-// Swal.fire({
-//   text: "Form has been successfully submitted!",
-//   icon: "success",
-//   buttonsStyling: false,
-//   confirmButtonText: "Ok, got it!",
-//   customClass: {
-//     confirmButton: "btn btn-primary",
-//   },
-// }).then(function (result) {
-//   if (result.isConfirmed) {
-//     // Hide modal
-//     modal.hide();
-
-//     // Enable submit button after loading
-//     submitButton.disabled = false;
-
-//     // Redirect to customers list page
-//     window.location = form.getAttribute("data-kt-redirect");
-//   }
-// });
