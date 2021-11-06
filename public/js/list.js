@@ -367,7 +367,7 @@ KTUtil.onDOMContentLoaded(function () {
 });
 
 function on_like_click(job_id) {
-  fetch(`/cancle_job?job_id=${job_id}`)
+  fetch(`/toggle_like?job_id=${job_id}`)
     .then((res) => res.json())
     .then((data) => {
       if (data.success) {
@@ -396,4 +396,34 @@ function on_cancle_click(job_id) {
     }
     console.log(ret);
   });
+}
+
+var socket;
+var connection_timeout;
+try_connect_ws();
+
+function try_connect_ws() {
+  socket = new WebSocket(
+    (window.location.protocol === "https:" ? "wss://" : "ws://") +
+      window.location.host +
+      "/ws"
+  );
+
+  socket.onopen = on_ws_open;
+  socket.onmessage = on_ws_message;
+  socket.onclose = on_ws_close;
+}
+
+function on_ws_open(msg) {
+  console.log("Subscribed to server events");
+}
+
+function on_ws_close(msg) {
+  clearTimeout(try_connect_ws);
+  setTimeout(try_connect_ws, 5000);
+}
+
+function on_ws_message(msg) {
+  const in_msg = JSON.parse(msg.data);
+  if (in_msg.update_list) dt.ajax.reload(null, false);
 }

@@ -6,7 +6,7 @@ const ROW_R = (row) => `<th db_name="${row.db_name}">${row.name}</th>`;
 
 // Create status bage with btn_type and display name
 const STATUS_BAGE_R = (btn_type, disp) =>
-  `<div class='row'><div class='col-12 d-flex justify-content-center text-center'><span class='badge badge-${btn_type}'>${disp}</span></div></div>`;
+  `<div class="col-6"><div class='col-12 d-flex justify-content-center text-center'><span class='badge badge-${btn_type}'>${disp}</span></div></div>`;
 
 // Create list columns passing list with {db_name, name}
 const LIST_ROWS_R = (rows_list) => {
@@ -28,12 +28,23 @@ global.UNLIKE_BTN = (likes_amount, job_id, row_id) =>
   LIKES_R(likes_amount, job_id, row_id, "", "fa-heart-broken text-black");
 
 global.FILES_BUTTON = (job_id) =>
-  `<a href="/get_job_files?job_id=${job_id}" download="job_${job_id}.zip" class="btn btn-info btn-hover-scale"><i class="bi bi-file-earmark-arrow-down-fill"></i> Files</a>`;
+  `<a href="/get_job_files?job_id=${job_id}" download="job_${job_id}.zip" class="btn btn-sm btn-info btn-hover-scale"><i class="bi bi-file-earmark-arrow-down-fill"></i> Files</a>`;
 
 global.ACTIVE_CANCLE_BTN = (job_id) =>
-  `<div class="btn btn-danger" onclick="on_cancle_click(${job_id})"><i class="bi bi-x-octagon"></i> Cancle</div>`;
+  `<div class="btn btn-sm btn-danger btn-hover-rise" onclick="on_cancle_click(${job_id})"><i class="bi bi-x-octagon"></i> Cancle</div>`;
 global.DISABLED_CANCLE_BTN = () =>
-  `<div class="btn btn-danger disabled"><i class="bi bi-x-octagon"></i> Cancle</div>`;
+  `<div class="btn btn-sm btn-danger disabled"><i class="bi bi-x-octagon"></i> Cancle</div>`;
+
+global.ERROR_BUTTON_MODAL = (title, err) =>
+  `
+<div class="col-6"><div class="btn btn-sm btn-icon btn-light-info text-white me-1" data-bs-toggle="modal" data-bs-target="#kt_modal_1"><i class="bi bi-info-square-fill"></i></div></div>
+<div class="modal fade" tabindex="-1" id="kt_modal_1">
+  <div class="modal-dialog"><div class="modal-content">
+    <div class="modal-header"><h5 class="modal-title">${title}</h5></div>
+    <div class="modal-body"><p>${err}</p></div>
+    <div class="modal-footer"><button type="button" class="btn btn-light" data-bs-dismiss="modal">Close</button></div>
+  </div></div>
+</div>`;
 
 // Statuses
 global.STATUSES = {
@@ -115,7 +126,7 @@ global.LIST_VIEWS = {
 };
 
 // Session
-global.SESSION_LENGTH = 86400000;
+global.SESSION_LENGTH = 86400;
 
 global.RES_SUCCESS = JSON.stringify({ success: true });
 global.RES_FAIL = JSON.stringify({ success: false });
@@ -146,3 +157,14 @@ fs.readFile(path.resolve(__dirname, "templates/", "list.html"), (err, data) => {
   if (err) throw err;
   global.LIST_HTML_FILE = data.toString("utf-8");
 });
+
+//Files
+global.TMP_FILES_DIR = path.join(__dirname, "uploaded_files_tmp");
+
+// WebSocket
+// SOCKET_EVENTS -> type: []
+// type - event name
+// [] - update too all who are on pages in this list
+global.SOCKET_EVENTS = ["ADD_JOB", "LIKE_JOB", "JOB_STATUS_CHANGE"];
+
+global.WS_UPDATE_LIST = JSON.stringify({ update_list: true });

@@ -105,7 +105,8 @@ var KTModalCustomersAdd = (function () {
     });
 
     drop_zone.on("error", function (file, ret) {
-      if (ret != "You can not upload any more files.")
+      console.log(ret);
+      if (ret.includes("Server"))
         Swal.fire({
           text: "Error occured during file upload, try again later",
           icon: "error",
