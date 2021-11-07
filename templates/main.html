@@ -127,7 +127,7 @@
                         </div>
                         <div class="separator my-2"></div>
                         <div class="menu-item px-5">
-                          <div onclick="$('#kt_modal_profile .modal-body').load('https://google.lv',function(e){$('#kt_modal_profile').modal('show');});" class="menu-link px-5">My Profile</div>
+                          <a href="/open_profile?user_id={:USER_ID:}"  class="menu-link px-5">My Profile</a>
                         </div>
                         <div class="separator my-2"></div>
                         <div class="menu-item px-5">
@@ -168,9 +168,7 @@
             <!--begin::Container-->
             <div class="container-xxl" id="kt_content_container">
               <!--begin::Card-->
-
               {:PROFILE:}
-
               <div class="row g-5">
                 <div class="col-12">
                   <div class="card card-xxl-stretch">
@@ -183,14 +181,7 @@
                       </div>
                       <!--begin::Card title-->
                       <!--begin::Card toolbar-->
-                      <div class="card-toolbar">
-                        <!--begin::Toolbar-->
-                        <button type="button" class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#kt_modal_add_customer">
-                          <span class="svg-icon svg-icon-2"></span>
-                          Upload code
-                        </button>
-                        <!--end::Group actions-->
-                      </div>
+                      {:UPLOAD_BTN:}
                       <!--end::Card toolbar-->
                     </div>
                     <!--end::Card header-->
@@ -198,6 +189,7 @@
                     <div class="card-body pt-0">
                       <!--begin::Datatable-->
                       <table id="kt_datatable_example_1" class="table align-middle table-row-dashed table-striped fs-6 gy-5">
+                        <h1>{:TABLE_NAME:}</h1>
                         <thead>
                           <tr class="text-start text-gray-400 fw-bolder fs-7 text-uppercase gs-0" id="columns_holder">
                             {:LIST_LAY:}

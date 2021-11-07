@@ -5,7 +5,8 @@ const fs = require("fs");
 const ROW_R = (row) => `<th db_name="${row.db_name}">${row.name}</th>`;
 
 // Create status bage with btn_type and display name
-const STATUS_BAGE_R = (btn_type, disp) => `<div class="col-6"><div class='col-12 d-flex justify-content-center text-center'><span class='badge badge-${btn_type}'>${disp}</span></div></div>`;
+const STATUS_BAGE_R = (btn_type, disp) =>
+  `<div class="col-6"><div class='col-12 d-flex justify-content-center text-center'><span class='badge badge-${btn_type}'>${disp}</span></div></div>`;
 
 // Create list columns passing list with {db_name, name}
 const LIST_ROWS_R = (rows_list) => {
@@ -14,19 +15,66 @@ const LIST_ROWS_R = (rows_list) => {
   return res;
 };
 
-const LIKES_R = (likes_amount, job_id, row_id, btn_classes, i_classes) => `<div class="row"><div class="col-4 d-flex justify-content-center align-items-center"><div>${likes_amount}</div></div><div class="col-6"><div class="btn btn-sm btn-icon btn-outline-danger btn-hover-rotate-${(row_id & 1) == 0 ? "end" : "start"} me-1 btn-outline ${btn_classes}" onclick="on_like_click(${job_id})"><i class="fas ${i_classes}"></i></div></div></div>`;
+const LIKES_R = (likes_amount, job_id, row_id, btn_classes, i_classes) => `
+<div class="row">
+  <div class="col-4 d-flex justify-content-center align-items-center">
+    <div>${likes_amount}</div>
+  </div>
+  <div class="col-6">
+    <div class="btn btn-sm btn-icon btn-outline-danger btn-hover-rotate-${
+      (row_id & 1) == 0 ? "end" : "start"
+    } me-1 btn-outline ${btn_classes}" onclick="on_like_click(${job_id})">
+      <i class="fas ${i_classes}"></i>
+    </div>
+  </div>
+</div>`;
 
 // Renders
+
+//
+global.MAIN_PAGE_RENDER = (avatar, username, cur_page, show_upload, user_id, profile) =>
+  LIST_HTML_FILE.replace(/{:AVATAR:}/g, avatar)
+    .replace(/{:TABLE_NAME:}/g, LISTS_NAMES[cur_page])
+    .replace(/{:UPLOAD_BTN:}/g, show_upload ? UPLOAD_BTN : "")
+    .replace(/{:USERNAME:}/g, username)
+    .replace(/{:USER_ID:}/g, user_id)
+    .replace(/{:PROFILE:}/g, profile ? profile : "") // Insert avatsrs
+    .replace(/{:LIST_LAY:}/, LIST_VIEWS[cur_page]) // Inser List layout
+    .replace(
+      /{:ASIDE:}/g,
+      ASIDE_HTML_FILE.replace(ASIDE_ATTRIBUTES[cur_page], "here show").replace(/{:MENU1:}|{:MENU2:}|{:MENU3:}/, "")
+    );
+
+global.PROFILE_RENDER = (avatar, username, total_likes, total_jobs, user_rank, total_users) =>
+  PROFILE_HTML_FILE.replace(/{:AVATAR:}/g, avatar)
+    .replace(/{:USERNAME:}/g, username)
+    .replace(/{:TOTAL_LIKES:}/g, total_likes)
+    .replace(/{:TOTAL_SUBMISSIONS:}/g, total_jobs)
+    .replace(/{:USERS_PERCENT:}/g, Math.round(((user_rank - 1) / total_users) * 10000) / 100)
+    .replace(/{:USERS_TOP:}/g, user_rank)
+    .replace(/{:TOTAL_USERS:}/g, total_users);
+
+global.UPLOAD_BTN =
+  '<div class="card-toolbar"><button type="button" class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#kt_modal_add_customer"><span class="svg-icon svg-icon-2"></span>Upload code</button></div>';
+
 global.VIDEO_BTN = (url) => `<a href='${url}' target='_blank'>Open Video</a>`;
 
-global.LIKE_BTN = (likes_amount, job_id, row_id) => LIKES_R(likes_amount, job_id, row_id, "btn-danger", "fa-heart text-white");
+global.USERNAME_RENDER = (user_name, user_id) =>
+  `<a href="open_profile?user_id=${user_id}" class="text-gray-900 text-hover-primary fw-bolder me-1">${user_name}</a>`;
 
-global.UNLIKE_BTN = (likes_amount, job_id, row_id) => LIKES_R(likes_amount, job_id, row_id, "", "fa-heart-broken text-black");
+global.LIKE_BTN = (likes_amount, job_id, row_id) =>
+  LIKES_R(likes_amount, job_id, row_id, "btn-danger", "fa-heart text-white");
 
-global.FILES_BUTTON = (job_id) => `<a href="/get_job_files?job_id=${job_id}" download="job_${job_id}.zip" class="btn btn-sm btn-info btn-hover-scale"><i class="bi bi-file-earmark-arrow-down-fill"></i> Files</a>`;
+global.UNLIKE_BTN = (likes_amount, job_id, row_id) =>
+  LIKES_R(likes_amount, job_id, row_id, "", "fa-heart-broken text-black");
 
-global.ACTIVE_CANCLE_BTN = (job_id) => `<div class="btn btn-sm btn-danger btn-hover-rise" onclick="on_cancle_click(${job_id})"><i class="bi bi-x-octagon"></i> Cancle</div>`;
-global.DISABLED_CANCLE_BTN = () => `<div class="btn btn-sm btn-danger disabled"><i class="bi bi-x-octagon"></i> Cancle</div>`;
+global.FILES_BUTTON = (job_id) =>
+  `<a href="/get_job_files?job_id=${job_id}" download="job_${job_id}.zip" class="btn btn-sm btn-info btn-hover-scale"><i class="bi bi-file-earmark-arrow-down-fill"></i> Files</a>`;
+
+global.ACTIVE_CANCLE_BTN = (job_id) =>
+  `<div class="btn btn-sm btn-danger btn-hover-rise" onclick="on_cancle_click(${job_id})"><i class="bi bi-x-octagon"></i> Cancle</div>`;
+global.DISABLED_CANCLE_BTN = () =>
+  `<div class="btn btn-sm btn-danger disabled"><i class="bi bi-x-octagon"></i> Cancle</div>`;
 
 global.ERROR_BUTTON_MODAL = (title, err, i) =>
   `
@@ -115,6 +163,13 @@ global.global.STATUSES = {
 global.PAGES_VIEWS_LIST = ["main", "my_jobs", "leader", "profile"];
 
 global.ASIDE_ATTRIBUTES = { main: /{:MENU1:}/g, my_jobs: /{:MENU2:}/g, leader: /{:MENU3:}/g, profile: /a^/ };
+
+global.LISTS_NAMES = {
+  main: "Excecution Jobs Queue",
+  my_jobs: "My Jobs",
+  leader: "Top Jobs",
+  profile: "Top User's Jobs",
+};
 
 global.LIKABLE_STATUSES = [STATUSES.RUNNING.value, STATUSES.VOTING.value, STATUSES.DONE.value];
 
