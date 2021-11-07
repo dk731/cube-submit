@@ -77,6 +77,11 @@ app.get("/", (request, response) => {
           const cur_page =
             cur_sess.params.active_page == "profile" ? cur_sess.params.prev_page : cur_sess.params.active_page;
 
+          db.query(
+            "UPDATE sessions SET params = JSON_SET(params, '$.active_page', :active_page) WHERE sessions.id = :session_id",
+            { active_page: cur_page, session_id: cur_sess.id }
+          );
+
           if (!PAGES_VIEWS_LIST.includes(cur_page)) return response.status(301).redirect("/?menu=main");
 
           db.query(
@@ -84,6 +89,9 @@ app.get("/", (request, response) => {
             { user_id: cur_sess.user_id },
             (err, row) => {
               if (err) throw err;
+
+              NO_CACHE_HEADERS(response);
+
               response
                 .status(200)
                 .send(MAIN_PAGE_RENDER(row[0].avatar, row[0].username, cur_page, true, cur_sess.user_id));
@@ -302,28 +310,33 @@ app.get("/profile", (request, response) => {
             // avatar, username, total_likes, total_jobs, users_top
             const user = row[0];
             db.query(
-              "SELECT b.*, (SELECT COUNT(*) FROM users u) total_users FROM (SELECT (@rownum := @rownum + 1) total_rank, user_id, avatar, username, IFNULL(sum(job_likes), 0) total_likes, count(jobs_id) total_jobs FROM(SELECT users.avatar avatar, users.username username, users.id user_id, jobs.id jobs_id, jobs.likes job_likes FROM users LEFT JOIN jobs ON users.id = jobs.user_id) a, (SELECT @rownum := 0) r GROUP BY username ORDER BY total_likes DESC) b WHERE b.user_id = :user_id",
-              { user_id: user.id },
+              "SELECT b.*, (SELECT COUNT(*) FROM users u) total_users, (SELECT users.avatar FROM users where users.id = :cur_user) cur_avatar FROM (SELECT (@rownum := @rownum + 1) total_rank, user_id, avatar, username, IFNULL(sum(job_likes), 0) total_likes, count(jobs_id) total_jobs FROM(SELECT users.avatar avatar, users.username username, users.id user_id, jobs.id jobs_id, jobs.likes job_likes FROM users LEFT JOIN jobs ON users.id = jobs.user_id) a, (SELECT @rownum := 0) r GROUP BY username ORDER BY total_likes DESC) b WHERE b.user_id = :profile_user",
+              { profile_user: user.id, cur_user: cur_sess.user_id },
               (err, row) => {
                 if (err || !row.length) response.status(500).send(RES_FAIL);
                 const user = row[0];
-                response.status(200).send(
-                  MAIN_PAGE_RENDER(
-                    user.avatar, // SET CURE USER AVATAR
-                    user.username,
-                    "profile",
-                    false,
-                    cur_sess.user_id,
-                    PROFILE_RENDER(
-                      user.avatar,
+
+                NO_CACHE_HEADERS(response);
+
+                response
+                  .status(200)
+                  .send(
+                    MAIN_PAGE_RENDER(
+                      user.cur_avatar,
                       user.username,
-                      user.total_likes,
-                      user.total_jobs,
-                      user.total_rank,
-                      user.total_users
+                      "profile",
+                      false,
+                      cur_sess.user_id,
+                      PROFILE_RENDER(
+                        user.avatar,
+                        user.username,
+                        user.total_likes,
+                        user.total_jobs,
+                        user.total_rank,
+                        user.total_users
+                      )
                     )
-                  )
-                );
+                  );
               }
             );
           }
@@ -345,8 +358,8 @@ app.get("/open_profile", (request, response) => {
         if ("user_id" in request.query == false) return response.status(200).redirect("/");
 
         db.query(
-          "UPDATE sessions SET params = JSON_SET(params, '$.profile_id', :user_id, '$.prev_page', '$.active_page', '$.active_page', 'profile') WHERE sessions.id = :session_id",
-          { user_id: request.query.user_id, session_id: cur_sess.id },
+          "UPDATE sessions SET params = JSON_SET(params, '$.profile_id', :user_id, '$.prev_page', :cur_page, '$.active_page', 'profile') WHERE sessions.id = :session_id",
+          { user_id: request.query.user_id, session_id: cur_sess.id, cur_page: cur_sess.params.active_page },
           (err) => {
             if (err) response.status(500).send(RES_FAIL);
             response.status(200).redirect("/profile");

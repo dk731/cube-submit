@@ -78,8 +78,8 @@ global.DISABLED_CANCLE_BTN = () =>
 
 global.ERROR_BUTTON_MODAL = (title, err, i) =>
   `
-<div class="col-6"><div class="btn btn-sm btn-icon btn-light-info text-white me-1" data-bs-toggle="modal" data-bs-target="#kt_modal_${i}"><i class="bi bi-info-square-fill"></i></div></div>
-<div class="modal fade" tabindex="-1" id="kt_modal_${i}">
+<div class="col-6"><div class="btn btn-sm btn-icon btn-light-info text-white me-1 jobs_info_btn" data-bs-toggle="modal" data-bs-target="#kt_modal_${i}"><i class="bi bi-info-square-fill"></i></div></div>
+<div class="modal fade jobs_modal_el" tabindex="-1" id="kt_modal_${i}">
   <div class="modal-dialog"><div class="modal-content">
     <div class="modal-header"><h5 class="modal-title">${title}</h5></div>
     <div class="modal-body"><pre>${err}</pre></div>
@@ -192,6 +192,11 @@ global.JOBS_CODE_DIR = path.resolve(__dirname, "jobs_folder");
 
 // App
 global.APP_PORT = 3000;
+global.NO_CACHE_HEADERS = (res) => {
+  res.setHeader("Cache-Control", "no-cache, no-store, must-revalidate"); // HTTP 1.1.
+  res.setHeader("Pragma", "no-cache");
+  res.setHeader("Expires", "0");
+};
 
 // Files templates
 fs.readFile(path.resolve(__dirname, "templates/", "aside.html"), (err, data) => {

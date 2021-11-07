@@ -1,5 +1,6 @@
 "use strict";
 var dt;
+const modal_state = { oppened: false, refresh_on_close: false };
 // Class definition
 var KTDatatablesServerSide = (function () {
   // Shared variables
@@ -34,6 +35,22 @@ var KTDatatablesServerSide = (function () {
 
     dt.on("draw", function () {
       KTMenu.createInstances();
+
+      document.querySelectorAll(".jobs_modal_el").forEach((modal) => {
+        modal.addEventListener("hidden.bs.modal", function () {
+          if (modal_state.refresh_on_close) {
+            modal_state.refresh_on_close = false;
+            dt.ajax.reload(null, false);
+          }
+          modal_state.oppened = false;
+        });
+      });
+
+      document.querySelectorAll(".jobs_info_btn").forEach((modal_btn) => {
+        modal_btn.addEventListener("click", function () {
+          modal_state.oppened = true;
+        });
+      });
     });
   };
 
@@ -41,11 +58,6 @@ var KTDatatablesServerSide = (function () {
   return {
     init: function () {
       initDatatable();
-      //handleSearchDatatable();
-      //initToggleToolbar();
-      //handleFilterDatatable();
-      //handleDeleteRows();
-      //handleResetForm();
     },
   };
 })();
@@ -108,9 +120,27 @@ function on_ws_close(msg) {
   setTimeout(try_connect_ws, 5000);
 }
 
-var in_modal = false; // TODO: determine if user is modal view, if yes then prevent events data table reload
+// $(".jobs_info_btn").each(function () {
+//   console.log($(this));
+//   $(this).on("hidden.bs.modal", function () {
+//     console.log("Closed");
+//     if (modal_state.refresh_on_close) {
+//       modal_state.refresh_on_close = false;
+//       dt.ajax.reload(null, false);
+//     }
+//     modal_state.oppened = false;
+//   });
+
+//   $(this).on("show", function () {
+//     console.log("Oppened modal");
+//     modal_state.oppened = true;
+//   });
+// });
 
 function on_ws_message(msg) {
   const in_msg = JSON.parse(msg.data);
-  if (in_msg.update_list && !in_modal) dt.ajax.reload(null, false);
+  if (in_msg.update_list) {
+    if (!modal_state.oppened) dt.ajax.reload(null, false);
+    else modal_state.refresh_on_close = true;
+  }
 }
