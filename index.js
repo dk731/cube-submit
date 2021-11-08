@@ -607,41 +607,46 @@ app.post("/upload_job", (request, response) => {
 
 app.get("/job_status_change", (request, response) => {
   // TODO: Check origin is from localhost or Cube renderer
-  if (request.socket.remoteAddress != "::ffff:127.0.0.1" || false) return response.status(200).send(RES_FAIL);
+  if (request.query.api_key != process.env.TRYCUBIC_KEY) return response.status(200).send(RES_FAIL);
 
-  update_job_status = (new_status, error, job_id, clb) =>
-    db.query(
-      "UPDATE jobs SET status = :status, error = :error WHERE jobs.id = :job_id",
-      { status: new_status, error: error, job_id: job_id },
-      (err) => {
-        if (err) return console.log("Error during status update from python script");
-        clb();
-      }
-    );
+  db.query(
+    "UPDATE jobs SET status = :status, error = :error WHERE jobs.id = :job_id",
+    { status: request.query.new_status, error: request.query.error, job_id: request.query.job_id },
+    (err) => {
+      if (err) return response.status(500).json(err);
 
-  switch (request.query.new_status) {
-    case "validating":
-      break;
-    case "pending":
-      update_job_status("pending", request.query.error, request.query.job_id, () => {
-        console.log("Updated job status to pending");
-        ws_server.broadcast({ type: "STATUS_CHANGE" });
+      response.status(200).send(RES_SUCCESS);
+      ws_server.broadcast({ type: "STATUS_CHANGE" });
+    }
+  );
+});
+
+app.get("/get_pending_job", (request, response) => {
+  if (request.query.api_key != process.env.TRYCUBIC_KEY) return response.status(200).send(RES_FAIL);
+
+  db.query(
+    "SELECT jobs.id id, jobs.note note, users.username FROM jobs INNER JOIN users ON users.id = jobs.user_id WHERE jobs.status = 'pending' ORDER BY jobs.id ASC LIMIT 1",
+    (err, row) => {
+      if (err) return response.status(500).josn(err);
+      if (row.length == 0) return response.status(500).send("NO JOBS AVAILABLE");
+
+      const current_dir = path.resolve(JOBS_CODE_DIR, row[0].id.toString());
+
+      const out_file = `job_${row[0].id}.zip`;
+      files_list = fs.readdirSync(current_dir);
+      files_list.forEach(function (file, i, arr) {
+        arr[i] = { path: path.resolve(current_dir, file), name: file };
       });
-      break;
-    case "error":
-      update_job_status("error", request.query.error, request.query.job_id, () => {
-        console.log("Updated job status to error");
-        ws_server.broadcast({ type: "STATUS_CHANGE" });
+
+      response.setHeader("trycubic_job_id", row[0].id);
+      response.setHeader("trycubic_username", row[0].username);
+      response.setHeader("trycubic_note", row[0].note);
+
+      response.status(200).zip(files_list, out_file, (err, bytes) => {
+        if (err) console.log("Error happened during pending job querying: ", err);
       });
-      break;
-    default:
-      return response.status(500).send("UNKNOWN NEW STATUS");
-      break;
-  }
-
-  response.status(200).send(RES_SUCCESS);
-
-  // Send update message to subscribed users
+    }
+  );
 });
 
 // Returns promise, if rejected - then cookie list does not contain active session, resolved - active session was found
