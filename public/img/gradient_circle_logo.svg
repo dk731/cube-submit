@@ -3,22 +3,22 @@
 <svg version="1.1" id="Layer_1" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" x="0px" y="0px"
 	 viewBox="0 0 480.5 480.5" style="enable-background:new 0 0 480.5 480.5;" xml:space="preserve">
 <style type="text/css">
-	.st0{fill:url(#SVGID_1_);stroke:#FFFFFF;stroke-miterlimit:10;}
+	.st0{fill:url(#SVGID_1_);}
 	.st1{fill:#676767;}
 	.st2{fill:#ED1C24;}
 	.st3{fill:none;}
 	.st4{fill:#FFFFFF;stroke:#000000;stroke-miterlimit:10;}
 </style>
-<radialGradient id="SVGID_1_" cx="240.3" cy="240.3" r="240.3" gradientUnits="userSpaceOnUse">
-	<stop  offset="0" style="stop-color:#000000"/>
-	<stop  offset="0.5553" style="stop-color:#020202;stop-opacity:0.6304"/>
-	<stop  offset="0.7554" style="stop-color:#090808;stop-opacity:0.4973"/>
-	<stop  offset="0.8974" style="stop-color:#141213;stop-opacity:0.4028"/>
+<radialGradient id="SVGID_1_" cx="240.3" cy="241.7" r="240.3" gradientTransform="matrix(1 0 0 -1 0 482)" gradientUnits="userSpaceOnUse">
+	<stop  offset="0" style="stop-color:#000000;stop-opacity:0.8"/>
+	<stop  offset="0.3782" style="stop-color:#030303;stop-opacity:0.6239"/>
+	<stop  offset="0.6686" style="stop-color:#0D0B0C;stop-opacity:0.4888"/>
+	<stop  offset="0.9289" style="stop-color:#1D1A1B;stop-opacity:0.3676"/>
 	<stop  offset="1" style="stop-color:#231F20;stop-opacity:0.3345"/>
 	<stop  offset="1" style="stop-color:#141213;stop-opacity:0.3207"/>
 	<stop  offset="1" style="stop-color:#090808;stop-opacity:0.3016"/>
 	<stop  offset="1" style="stop-color:#020202;stop-opacity:0.2747"/>
-	<stop  offset="1" style="stop-color:#000000;stop-opacity:0.2"/>
+	<stop  offset="1" style="stop-color:#000000;stop-opacity:0.1"/>
 </radialGradient>
 <circle class="st0" cx="240.3" cy="240.3" r="240.3"/>
 <path id="path3426" class="st1" d="M75.8,411.8c-0.3,0-0.8,0-1.2,0H74l-0.8-0.3l-0.8-0.3l-0.8-0.6l-0.8-0.6l-0.5-0.7l-0.5-0.7
@@ -94,8 +94,8 @@
 	l-0.2,0.6l-0.2,0.6l-0.4,0.5l-0.4,0.5l-0.5,0.4l-0.5,0.4l-0.6,0.2l-0.6,0.2v36.7v36.7l0.6,0.2l0.6,0.2l0.5,0.4l0.5,0.4l0.4,0.5
 	l0.4,0.5l0.1,0.3c0.1,0.2,0.2,0.4,0.3,0.6l0.1,0.3L152.2,280.6L152.2,280.6z M190.6,280.6h3.6l0.3-0.6l0.3-0.6l0.4-0.5l0.4-0.5
 	l0.5-0.4l0.5-0.4l0.6-0.3l0.6-0.3v-36.7v-36.7l-0.7-0.3l-0.7-0.3l-0.5-0.4l-0.5-0.4l-0.4-0.5l-0.4-0.5l-0.3-0.6L194,200h-3.6H187
-	v40.3v40.3L190.6,280.6L190.6,280.6z M240.5,280.6h36.7l0.2-0.6l0.2-0.6l0.4-0.5l0.4-0.5l0.5-0.4l0.5-0.4l0.6-0.2l0.6-0.2v-36.7
-	v-36.7l-0.6-0.3l-0.6-0.3l-0.5-0.4l-0.5-0.4l-0.3-0.5l-0.3-0.5l-0.3-0.7l-0.3-0.7h-36.7h-36.7l-0.3,0.7l-0.3,0.7l-0.4,0.5l-0.4,0.5
+	v40.3v40.3H190.6L190.6,280.6z M240.5,280.6h36.7l0.2-0.6l0.2-0.6l0.4-0.5l0.4-0.5l0.5-0.4l0.5-0.4l0.6-0.2l0.6-0.2v-36.7v-36.7
+	l-0.6-0.3l-0.6-0.3l-0.5-0.4l-0.5-0.4l-0.3-0.5l-0.3-0.5l-0.3-0.7l-0.3-0.7h-36.7h-36.7l-0.3,0.7l-0.3,0.7l-0.4,0.5l-0.4,0.5
 	l-0.5,0.4l-0.5,0.4l-0.7,0.3l-0.7,0.3v36.7v36.7l0.6,0.3l0.6,0.3l0.5,0.4l0.5,0.4l0.4,0.5l0.4,0.5l0.2,0.5c0.1,0.2,0.2,0.5,0.2,0.6
 	l0.1,0.2L240.5,280.6L240.5,280.6z M290.2,280.6h3.3v-40.3V200h-3.3h-3.3l-0.3,0.6l-0.3,0.6l-0.4,0.5l-0.4,0.5l-0.5,0.4l-0.5,0.4
 	l-0.6,0.2l-0.6,0.2v36.7v36.7l0.6,0.2l0.6,0.2l0.5,0.4l0.5,0.4l0.4,0.5l0.4,0.5l0.2,0.6l0.2,0.6L290.2,280.6L290.2,280.6z
