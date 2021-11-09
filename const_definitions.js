@@ -191,7 +191,7 @@ global.DEFUALT_PICTURE = "./img/default_avatar.png";
 global.JOBS_CODE_DIR = path.resolve(__dirname, "jobs_folder");
 
 // App
-global.APP_PORT = 3000;
+global.APP_PORT = 3001;
 global.NO_CACHE_HEADERS = (res) => {
   res.setHeader("Cache-Control", "no-cache, no-store, must-revalidate"); // HTTP 1.1.
   res.setHeader("Pragma", "no-cache");

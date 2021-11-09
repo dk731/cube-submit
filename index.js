@@ -30,9 +30,9 @@ fs.readdir(TMP_FILES_DIR, (err, files) => {
 var db;
 db = mysql.createConnection({
   host: "localhost",
-  user: "root",
-  password: process.env.MYSQL_PSWD,
-  database: "try_cubic",
+  user: "trycubic",
+  password: "",
+  database: "trycubic",
 });
 db.connect(function (err) {
   if (err) throw err;
@@ -737,6 +737,7 @@ function add_user(username, ext_id, type, avatar, response) {
       "SELECT count(*) cnt FROM users WHERE users.ext_id = :ext_id AND users.type = :type",
       { ext_id: ext_id, type: type },
       (err, row) => {
+        console.log(err, row);
         if (err || !row) reject("Was not able to check if users exists");
         if (row[0].cnt == 0) {
           db.query(
