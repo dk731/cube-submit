@@ -523,7 +523,7 @@ app.post("/upload_job", (request, response) => {
 });
 
 app.get("/get_submit_job", (request, response) => {
-  if (request.query.api_key != process.env.TRYCUBIC_KEY) return response.status(200).send(RES_FAIL);
+  if (request.query.api_key != process.env.TRYCUBIC_KEY) return response.status(400).send(RES_FAIL);
 
   db.query("SELECT jobs.id FROM jobs WHERE jobs.status = 'submited' ORDER BY jobs.id ASC LIMIT 1", (err, row) => {
     if (err) return response.status(500).send(err);

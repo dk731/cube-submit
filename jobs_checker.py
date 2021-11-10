@@ -63,7 +63,6 @@ def send_server(addr, params):
     res = None
 
     while True:
-        time.sleep(FAIL_TIME_WAIT)
         logging.info("Attempting to set get requests to server...")
 
         try:
@@ -82,6 +81,7 @@ def send_server(addr, params):
             res.status_code,
             res.text,
         )
+        time.sleep(FAIL_TIME_WAIT)
 
     logging.info("Successfully requests server %s address", addr)
 
@@ -91,7 +91,7 @@ def send_server(addr, params):
 while True:
     logging.info("Trying to get pending jobs")
 
-    res = send_server("get_pending_job", {"api_key": TRYCUBIC_KEY})
+    res = send_server("get_submit_job", {"api_key": TRYCUBIC_KEY})
     cur_job = res.headers["trycubic_job_id"]
 
     ZipFile(io.BytesIO(res.content)).extractall(JOB_FOLDER)  # Unpack downloaded job
@@ -99,6 +99,7 @@ while True:
     job_res, job_err = check_job(cur_job)
 
     send_server(
+        "job_status_change",
         params={
             "job_id": cur_job,
             "new_status": "pending" if job_res else "error",

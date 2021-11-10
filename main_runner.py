@@ -57,7 +57,6 @@ def send_server(addr, params):
     res = None
 
     while True:
-        time.sleep(FAIL_TIME_WAIT)
         logging.info("Attempting to set get requests to server...")
 
         try:
@@ -77,8 +76,9 @@ def send_server(addr, params):
             res.text,
         )
 
-    logging.info("Successfully requests server %s address", addr)
+        time.sleep(FAIL_TIME_WAIT)
 
+    logging.info("Successfully requests server %s address", addr)
     return res
 
 
