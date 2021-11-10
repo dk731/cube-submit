@@ -12,9 +12,6 @@ const uuid = require("uuid");
 const path = require("path");
 const fs = require("fs");
 
-spawn("python3.10", ["jobs_checker.py"]);
-spawn("python3.10", ["main_runner.py"]);
-
 const _ = require("./const_definitions"); // Import all constant definitions
 
 const { OAuth2Client } = require("google-auth-library");
