@@ -17,14 +17,9 @@ function auth_google(usr) {
 }
 
 function attach_google() {
-  auth2.attachClickHandler(
-    document.getElementById("google_btn"),
-    {},
-    auth_google,
-    function (error) {
-      alert(JSON.stringify(error, undefined, 2));
-    }
-  );
+  auth2.attachClickHandler(document.getElementById("google_btn"), {}, auth_google, function (error) {
+    alert(JSON.stringify(error, undefined, 2));
+  });
 }
 ////////////////////////////////////////////
 
@@ -38,8 +33,14 @@ function auth_github() {
 //////////////////////////////////////////// FACEBOOK
 
 function auth_facebook() {
-  FB.login(function (response) {
-    console.log(response);
+  FB.getLoginStatus(function (status_res) {
+    console.log(status_res);
+
+    if (response.status != "connected") {
+      FB.login(function (login_res) {
+        console.log(login_res);
+      });
+    }
   });
 }
 
@@ -49,8 +50,7 @@ var start_buttons = function () {
   gapi.load("auth2", function () {
     // google
     auth2 = gapi.auth2.init({
-      client_id:
-        "589100687475-a5os5k6fob930dm7ns7fvmar32p71qrp.apps.googleusercontent.com",
+      client_id: "589100687475-a5os5k6fob930dm7ns7fvmar32p71qrp.apps.googleusercontent.com",
       cookiepolicy: "single_host_origin",
     });
     attach_google();
@@ -74,10 +74,6 @@ start_buttons();
 function get_random_string() {
   return Array(35)
     .fill()
-    .map(() =>
-      "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789".charAt(
-        Math.random() * 62
-      )
-    )
+    .map(() => "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789".charAt(Math.random() * 62))
     .join("");
 }

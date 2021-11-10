@@ -21,6 +21,29 @@
     <meta name="google-signin-client_id" content="589100687475-a5os5k6fob930dm7ns7fvmar32p71qrp.apps.googleusercontent.com" />
   </head>
   <body id="kt_body" class="bg-dark">
+    <script>
+      window.fbAsyncInit = function () {
+        FB.init({
+          appId: "867247300821959",
+          xfbml: true,
+          version: "v12.0",
+        });
+        FB.AppEvents.logPageView();
+      };
+
+      (function (d, s, id) {
+        var js,
+          fjs = d.getElementsByTagName(s)[0];
+        if (d.getElementById(id)) {
+          return;
+        }
+        js = d.createElement(s);
+        js.id = id;
+        js.src = "https://connect.facebook.net/en_US/sdk.js";
+        fjs.parentNode.insertBefore(js, fjs);
+      })(document, "script", "facebook-jssdk");
+    </script>
+
     <div class="d-flex flex-column flex-root">
       <div class="d-flex flex-column flex-column-fluid bgi-position-y-bottom position-x-center bgi-no-repeat bgi-size-contain bgi-attachment-fixed" style="background-image: url(assets/media/illustrations/dozzy-1/14-dark.png">
         <div class="d-flex flex-center flex-column flex-column-fluid p-10 pb-lg-20">
@@ -56,31 +79,6 @@
 
     <script src="https://apis.google.com/js/api:client.js"></script>
     <script src="js/sign-in.js"></script>
-
-    <script>
-      window.fbAsyncInit = function () {
-        FB.init({
-          appId: "867247300821959",
-          cookie: true,
-          xfbml: true,
-          version: "v2.7",
-        });
-
-        FB.AppEvents.logPageView();
-      };
-
-      (function (d, s, id) {
-        var js,
-          fjs = d.getElementsByTagName(s)[0];
-        if (d.getElementById(id)) {
-          return;
-        }
-        js = d.createElement(s);
-        js.id = id;
-        js.src = "https://connect.facebook.net/en_US/sdk.js";
-        fjs.parentNode.insertBefore(js, fjs);
-      })(document, "script", "facebook-jssdk");
-    </script>
   </body>
   <!--end::Body-->
 </html>

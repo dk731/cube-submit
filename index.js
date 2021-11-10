@@ -57,10 +57,6 @@ app.use(
     multiples: true,
     keepExtensions: true,
     maxFileSize: 3 * 1024 * 1024,
-    filter: function ({ name, originalFilename, mimetype }) {
-      console.log(name);
-      return false;
-    },
   })
 );
 
@@ -527,11 +523,9 @@ app.post("/upload_job", (request, response) => {
 
       response.status(200).send(RES_FAIL);
     });
-  console.log(request);
 });
 
 app.get("/job_status_change", (request, response) => {
-  // TODO: Check origin is from localhost or Cube renderer
   if (request.query.api_key != process.env.TRYCUBIC_KEY) return response.status(200).send(RES_FAIL);
 
   db.query("UPDATE jobs SET status = :status, error = :error WHERE jobs.id = :job_id", { status: request.query.new_status, error: request.query.error, job_id: request.query.job_id }, (err) => {
