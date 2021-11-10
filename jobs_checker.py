@@ -89,10 +89,10 @@ def send_server(addr, params):
 
 
 while True:
-    logging.info("Trying to get pending jobs")
+    logging.info("Trying to get submited jobs")
 
     res = send_server("get_submit_job", {"api_key": TRYCUBIC_KEY})
-    cur_job = res.headers["trycubic_job_id"]
+    cur_job = int(res.headers["trycubic_job_id"])
 
     ZipFile(io.BytesIO(res.content)).extractall(JOB_FOLDER)  # Unpack downloaded job
 

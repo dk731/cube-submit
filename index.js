@@ -726,7 +726,7 @@ clear_expired_sessions();
 setTimeout(clear_expired_sessions, 43200000); // Clear expired session every 12 hours
 
 ws_server.on("request", function (request) {
-  if (request.origin != "http://trycubic.com:3000") return request.reject();
+  // if (request.origin != "https://trycubic.com:3000") return request.reject();
 
   const parsed_cookies = {};
   request.cookies.forEach(function (cookie) {
