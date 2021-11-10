@@ -525,6 +525,29 @@ app.post("/upload_job", (request, response) => {
     });
 });
 
+app.get("/get_submit_job", (request, response) => {
+  if (request.query.api_key != process.env.TRYCUBIC_KEY) return response.status(200).send(RES_FAIL);
+
+  db.query("SELECT jobs.id FROM jobs WHERE jobs.status = 'submited' ORDER BY jobs.id ASC LIMIT 1", (err, row) => {
+    if (err) return response.status(500).send(err);
+    if (!row.length) response.status(400).send("NO NEW SUBMIT JOBS AVAILABLE");
+
+    const current_dir = path.resolve(JOBS_CODE_DIR, row[0].id.toString());
+    const out_file = "job.zip";
+
+    files_list = fs.readdirSync(current_dir);
+    files_list.forEach(function (file, i, arr) {
+      arr[i] = { path: path.resolve(current_dir, file), name: file };
+    });
+
+    response.setHeader("trycubic_job_id", row[0].id);
+
+    response.zip(files_list, out_file, (err, bytes) => {
+      if (err) console.log("Error happened during upload of job files to python: ", err);
+    });
+  });
+});
+
 app.get("/job_status_change", (request, response) => {
   if (request.query.api_key != process.env.TRYCUBIC_KEY) return response.status(200).send(RES_FAIL);
 

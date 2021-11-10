@@ -33,15 +33,15 @@ function auth_github() {
 //////////////////////////////////////////// FACEBOOK
 
 function auth_facebook() {
-  FB.getLoginStatus(function (status_res) {
-    console.log(status_res);
-
-    if (response.status != "connected") {
-      FB.login(function (login_res) {
-        console.log(login_res);
-      });
-    }
-  });
+  // const stringifiedParams = queryString.stringify({
+  //   client_id: process.env.APP_ID_GOES_HERE,
+  //   redirect_uri: 'https://www.example.com/authenticate/facebook/',
+  //   scope: ['email', 'user_friends'].join(','), // comma seperated string
+  //   response_type: 'code',
+  //   auth_type: 'rerequest',
+  //   display: 'popup',
+  // });
+  const facebookLoginUrl = `https://www.facebook.com/v4.0/dialog/oauth?`;
 }
 
 ////////////////////////////////////////////
@@ -62,11 +62,11 @@ var start_buttons = function () {
       auth_github();
     });
 
-  document //github
-    .getElementById("facebook_btn")
-    .addEventListener("click", function () {
-      auth_facebook();
-    });
+  // document //facebook
+  //   .getElementById("facebook_btn")
+  //   .addEventListener("click", function () {
+  //     auth_facebook();
+  //   });
 };
 
 start_buttons();

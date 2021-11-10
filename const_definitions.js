@@ -152,7 +152,7 @@ global.PAGES_VIEWS_LIST = ["main", "my_jobs", "leader", "profile"];
 global.ASIDE_ATTRIBUTES = { main: /{:MENU1:}/g, my_jobs: /{:MENU2:}/g, leader: /{:MENU3:}/g, profile: /a^/ };
 
 global.LISTS_NAMES = {
-  main: "Excecution Jobs Queue",
+  main: "Exececution Jobs Queue",
   my_jobs: "My Jobs",
   leader: "Top Jobs",
   profile: "Top User's Jobs",

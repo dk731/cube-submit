@@ -1,9 +1,11 @@
 from pylint import epylint as lint
 
-import mysql.connector
+from zipfile import ZipFile
 import requests
+import shutil
 import time
 import os
+import io
 
 import logging
 
@@ -18,40 +20,45 @@ logging.basicConfig(
 logging.info("Starting jobs_checker.py")
 
 TRYCUBIC_KEY = os.environ["TRYCUBIC_KEY"]
-JOBS_FOLDER = os.getcwd()
+ROOT_FOLDER = os.getcwd()
+JOB_FOLDER = os.path.join(ROOT_FOLDER, "job_folder")
 FAIL_TIME_WAIT = 5
 
-db = mysql.connector.connect(
-    host="localhost",
-    user="root",
-    password=os.environ["MYSQL_PSWD"],
-    database="try_cubic",
-)
-cur = db.cursor()
+if not os.path.exists(JOB_FOLDER):
+    os.mkdir(JOB_FOLDER)
 
-logging.info("Successfully connected to DB")
+
+def clear_run_folder():
+    for filename in os.listdir(JOB_FOLDER):
+        file_path = os.path.join(JOB_FOLDER, filename)
+        try:
+            if os.path.isfile(file_path) or os.path.islink(file_path):
+                os.unlink(file_path)
+            elif os.path.isdir(file_path):
+                shutil.rmtree(file_path)
+        except Exception as e:
+            logging.error("Error during running folder clearing {}".format(e))
+    logging.info("Cleared job dir")
 
 
 def check_job(job_id: int) -> tuple[bool, str]:
     logging.info("Starting job %d check", job_id)
-    job_folder = os.path.join(JOBS_FOLDER, str(job_id))
 
-    os.chdir(job_folder)
+    os.chdir(JOB_FOLDER)
 
     lint_output = lint.py_run(
         "main.py --disable all --enable E",
         return_std=True,
     )[0].read()
 
-    logging.info(
-        "Finished job %d check with result: %s",
-        job_id,
-    )
+    os.chdir(ROOT_FOLDER)
+
+    logging.info("Finished job %d check with result: %s", job_id, lint_output)
 
     return "error" not in lint_output, lint_output
 
 
-def send_server(params):
+def send_server(addr, params):
     params["api_key"] = TRYCUBIC_KEY
     res = None
 
@@ -61,8 +68,7 @@ def send_server(params):
 
         try:
             res = requests.get(
-                "http://127.0.0.1:3000/job_status_change",
-                params=params,
+                "https://trycubic.com/" + addr, params=params, stream=True
             )
         except Exception as e:
             logging.error("Requests raised exception: {}".format(e))
@@ -77,39 +83,29 @@ def send_server(params):
             res.text,
         )
 
-    logging.info(
-        "Successfully requested server to change job %d status to %s",
-        params["job_id"],
-        params["new_status"],
-    )
+    logging.info("Successfully requests server %s address", addr)
 
     return res
 
 
 while True:
-    logging.info("Starting jobs checkin cycle")
-    cur.execute("SELECT jobs.id FROM jobs WHERE jobs.status = 'submited'")
+    logging.info("Trying to get pending jobs")
 
-    jobs_count = 0
-    for (job_id,) in cur.fetchall():
-        jobs_count += 1
-        logging.info("Starting check of job %d", job_id)
+    res = send_server("get_pending_job", {"api_key": TRYCUBIC_KEY})
+    cur_job = res.headers["trycubic_job_id"]
 
-        send_server(
-            params={"job_id": job_id, "new_status": "validating"},
-        )
+    ZipFile(io.BytesIO(res.content)).extractall(JOB_FOLDER)  # Unpack downloaded job
 
-        job_res, job_err = check_job(job_id)
+    job_res, job_err = check_job(cur_job)
 
-        send_server(
-            params={
-                "job_id": job_id,
-                "new_status": "pending" if job_res else "error",
-                "error": job_err,
-            },
-        )
+    send_server(
+        params={
+            "job_id": cur_job,
+            "new_status": "pending" if job_res else "error",
+            "error": job_err,
+        },
+    )
 
-    logging.info("Finished checking cycle with %d checked jobs", jobs_count)
+    logging.info("Finished checking job %d with result: %s", cur_job, job_res)
 
-    db.commit()
     time.sleep(20)
