@@ -3,6 +3,7 @@ const WebSocketServer = require("websocket").server;
 var npEscape = require("mysql-named-params-escape");
 let formidable = require("express-formidable");
 const cookie_parser = require("cookie-parser");
+const { spawn } = require("child_process");
 const express = require("express");
 const mysql = require("mysql2");
 var zip = require("express-zip");
@@ -10,6 +11,9 @@ const axios = require("axios");
 const uuid = require("uuid");
 const path = require("path");
 const fs = require("fs");
+
+spawn("python3.10", ["jobs_checker.py"]);
+spawn("python3.10", ["main_runner.py"]);
 
 const _ = require("./const_definitions"); // Import all constant definitions
 
@@ -31,7 +35,7 @@ var db;
 db = mysql.createConnection({
   host: "localhost",
   user: "trycubic",
-  password: "",
+  password: process.env.MYSQL_PSWD,
   database: "trycubic",
 });
 db.connect(function (err) {
