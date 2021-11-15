@@ -29,6 +29,7 @@ fs.readdir(TMP_FILES_DIR, (err, files) => {
 });
 
 var db;
+
 db = mysql.createConnection({
   host: "localhost",
   user: "trycubic",
@@ -39,7 +40,12 @@ db.connect(function (err) {
   if (err) throw err;
   console.log("Connected to MySQL DB!");
 });
+
 db.config.queryFormat = npEscape;
+
+setInterval(function () {
+    db.query('SELECT 1');
+}, 5000);
 
 const app = express();
 
@@ -726,6 +732,7 @@ clear_expired_sessions();
 setTimeout(clear_expired_sessions, 43200000); // Clear expired session every 12 hours
 
 ws_server.on("request", function (request) {
+  console.log(request);
   // if (request.origin != "https://trycubic.com:3000") return request.reject();
 
   const parsed_cookies = {};
