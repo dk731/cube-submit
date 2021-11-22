@@ -31,9 +31,9 @@ fs.readdir(TMP_FILES_DIR, (err, files) => {
 var db;
 db = mysql.createConnection({
   host: "localhost",
-  user: "trycubic",
-  password: process.env.MYSQL_PSWD,
-  database: "trycubic",
+  user: "root",
+  password: "root",
+  database: "try_cubic",
 });
 db.connect(function (err) {
   if (err) throw err;
@@ -80,18 +80,26 @@ app.get("/", (request, response) => {
 
           if (!PAGES_VIEWS_LIST.includes(cur_page)) return response.status(301).redirect("/?menu=main");
 
-          db.query("SELECT avatar, username FROM users WHERE users.id = :user_id", { user_id: cur_sess.user_id }, (err, row) => {
-            if (err) throw err;
+          db.query(
+            "SELECT avatar, username FROM users WHERE users.id = :user_id",
+            { user_id: cur_sess.user_id },
+            (err, row) => {
+              if (err) throw err;
 
-            NO_CACHE_HEADERS(response);
+              NO_CACHE_HEADERS(response);
 
-            response.status(200).send(MAIN_PAGE_RENDER(row[0].avatar, row[0].username, cur_page, true, cur_sess.user_id));
-          });
+              response.status(200).send(MAIN_PAGE_RENDER(row[0].avatar, row[0].username, cur_page, true, cur_sess.user_id));
+            }
+          );
         } else {
-          db.query("UPDATE sessions SET active_page = :active_page WHERE sessions.id = :session_id", { session_id: cur_sess.id, active_page: request.query.menu }, (err, rows) => {
-            if (err) throw "Was not able to set session active page";
-            response.status(301).redirect("/");
-          });
+          db.query(
+            "UPDATE sessions SET active_page = :active_page WHERE sessions.id = :session_id",
+            { session_id: cur_sess.id, active_page: request.query.menu },
+            (err, rows) => {
+              if (err) throw "Was not able to set session active page";
+              response.status(301).redirect("/");
+            }
+          );
         }
       },
       (rej) => {
@@ -185,7 +193,9 @@ app.get("/query_table", (request, response) => {
                       if (!cur_status) tmp_obj["status"] = el.status;
                       // Check if job has error, if yes check if this is current user job then return status with error
                       else if (el.error && cur_sess.user_id == el.user_id) {
-                        tmp_obj["status"] = `<div class="row d-flex justify-content-center align-items-center">${cur_status.render}${ERROR_BUTTON_MODAL("Files you sumbited for this job returned with error", el.error, i)}</div>`;
+                        tmp_obj["status"] = `<div class="row d-flex justify-content-center align-items-center">${
+                          cur_status.render
+                        }${ERROR_BUTTON_MODAL("Files you sumbited for this job returned with error", el.error, i)}</div>`;
                       } else {
                         // Return just status
                         tmp_obj["status"] = cur_status.render;
@@ -199,7 +209,9 @@ app.get("/query_table", (request, response) => {
                     tmp_obj["whn"] = new Date(el.whn).toLocaleDateString();
                     break;
                   case "cancle":
-                    tmp_obj["cancle"] = CANCLABLE_STATUSES.includes(el.status) ? ACTIVE_CANCLE_BTN(el.id) : DISABLED_CANCLE_BTN();
+                    tmp_obj["cancle"] = CANCLABLE_STATUSES.includes(el.status)
+                      ? ACTIVE_CANCLE_BTN(el.id)
+                      : DISABLED_CANCLE_BTN();
                     break;
                   case "video_url":
                     tmp_obj.video_url = el.video_url ? VIDEO_BTN(el.video_url) : "Video is currently unavailable";
@@ -242,21 +254,29 @@ app.get("/cancle_job", (request, response) => {
   check_session(request.cookies)
     .then(
       (cur_sess) => {
-        db.query("SELECT jobs.status FROM jobs WHERE jobs.user_id = :user_id AND jobs.id = :job_id", { user_id: cur_sess.user_id, job_id: request.query.job_id }, (err, row) => {
-          if (err) throw "Error during check if current user is job creator";
-          if (!row[0] || !row[0].status) return response.status(200).send(RES_FAIL);
-          if (!CANCLABLE_STATUSES.includes(row[0].status)) return response.status(200).send(RES_FAIL);
+        db.query(
+          "SELECT jobs.status FROM jobs WHERE jobs.user_id = :user_id AND jobs.id = :job_id",
+          { user_id: cur_sess.user_id, job_id: request.query.job_id },
+          (err, row) => {
+            if (err) throw "Error during check if current user is job creator";
+            if (!row[0] || !row[0].status) return response.status(200).send(RES_FAIL);
+            if (!CANCLABLE_STATUSES.includes(row[0].status)) return response.status(200).send(RES_FAIL);
 
-          db.query("UPDATE jobs SET status = :status WHERE jobs.id = :job_id", { status: "canceled", job_id: request.query.job_id }, (err) => {
-            if (err) return response.status(500).send(RES_FAIL);
-            response.status(200).send(RES_SUCCESS);
+            db.query(
+              "UPDATE jobs SET status = :status WHERE jobs.id = :job_id",
+              { status: "canceled", job_id: request.query.job_id },
+              (err) => {
+                if (err) return response.status(500).send(RES_FAIL);
+                response.status(200).send(RES_SUCCESS);
 
-            ws_server.broadcast({
-              type: "CANCLE_JOB",
-              initiator_sess: cur_sess.id,
-            });
-          });
-        });
+                ws_server.broadcast({
+                  type: "CANCLE_JOB",
+                  initiator_sess: cur_sess.id,
+                });
+              }
+            );
+          }
+        );
       },
       (rej) => {
         throw "Cant cancle job withput active session";
@@ -281,7 +301,25 @@ app.get("/profile", (request, response) => {
 
             NO_CACHE_HEADERS(response);
 
-            response.status(200).send(MAIN_PAGE_RENDER(user.cur_avatar, user.username, "profile", false, cur_sess.user_id, PROFILE_RENDER(user.avatar, user.username, user.total_likes, user.total_jobs, user.total_rank, user.total_users)));
+            response
+              .status(200)
+              .send(
+                MAIN_PAGE_RENDER(
+                  user.cur_avatar,
+                  user.username,
+                  "profile",
+                  false,
+                  cur_sess.user_id,
+                  PROFILE_RENDER(
+                    user.avatar,
+                    user.username,
+                    user.total_likes,
+                    user.total_jobs,
+                    user.total_rank,
+                    user.total_users
+                  )
+                )
+              );
           }
         );
       },
@@ -300,10 +338,14 @@ app.get("/open_profile", (request, response) => {
       (cur_sess) => {
         if ("user_id" in request.query == false) return response.status(200).redirect("/");
 
-        db.query("UPDATE sessions SET prev_page = active_page, active_page = 'profile', focused_profile = :profile_id WHERE sessions.id = :session_id", { profile_id: request.query.user_id, session_id: cur_sess.id }, (err) => {
-          if (err) response.status(500).send(RES_FAIL);
-          response.status(200).redirect("/profile");
-        });
+        db.query(
+          "UPDATE sessions SET prev_page = active_page, active_page = 'profile', focused_profile = :profile_id WHERE sessions.id = :session_id",
+          { profile_id: request.query.user_id, session_id: cur_sess.id },
+          (err) => {
+            if (err) response.status(500).send(RES_FAIL);
+            response.status(200).redirect("/profile");
+          }
+        );
       },
       (rej) => {
         response.status(200).redirect("/signin");
@@ -320,50 +362,62 @@ app.get("/toggle_like", (request, response) => {
       (cur_sess) => {
         if ("job_id" in request.query == false) throw "Not job to like was provided";
 
-        db.query("SELECT jobs.user_id, jobs.status FROM jobs WHERE jobs.id = :job_id", { job_id: parseInt(request.query.job_id) }, (err, row) => {
-          if (err) throw "Was not able to select likes table";
+        db.query(
+          "SELECT jobs.user_id, jobs.status FROM jobs WHERE jobs.id = :job_id",
+          { job_id: parseInt(request.query.job_id) },
+          (err, row) => {
+            if (err) throw "Was not able to select likes table";
 
-          if (!row) {
-            response.status(500).send(RES_FAIL);
-            return;
-          }
-
-          if (cur_sess.user_id == row[0].user_id || !LIKABLE_STATUSES.includes(row[0].status)) {
-            response.status(500).send(RES_FAIL); // Attempt of like own job or like of unlikable job
-            return;
-          }
-
-          db.query("SELECT likes.id FROM likes WHERE likes.job_id = :job_id AND likes.user_id =:user_id", { job_id: request.query.job_id, user_id: cur_sess.user_id }, (err, like_row) => {
-            if (err) throw "Was not able to select like with given job id";
-
-            var main_sql = "";
-            var main_params = {};
-
-            if (like_row[0]) {
-              main_sql = "DELETE FROM likes WHERE likes.id = :like_id";
-              main_params.like_id = [like_row[0].id];
-            } else {
-              main_sql = "INSERT INTO likes (user_id, job_id) VALUES(:user_id, :job_id)";
-              main_params.user_id = cur_sess.user_id;
-              main_params.job_id = request.query.job_id;
+            if (!row) {
+              response.status(500).send(RES_FAIL);
+              return;
             }
 
-            db.query(main_sql, main_params, (err, rows) => {
-              if (err) return response.status(200).send(RES_FAIL);
+            if (cur_sess.user_id == row[0].user_id || !LIKABLE_STATUSES.includes(row[0].status)) {
+              response.status(500).send(RES_FAIL); // Attempt of like own job or like of unlikable job
+              return;
+            }
 
-              db.query(`UPDATE jobs SET likes = likes ${like_row[0] ? "-" : "+"} 1 WHERE jobs.id = :job_id`, { job_id: request.query.job_id }, (err, rows) => {
-                if (err) return response.status(200).send(RES_FAIL);
-                response.status(200).send(RES_SUCCESS);
+            db.query(
+              "SELECT likes.id FROM likes WHERE likes.job_id = :job_id AND likes.user_id =:user_id",
+              { job_id: request.query.job_id, user_id: cur_sess.user_id },
+              (err, like_row) => {
+                if (err) throw "Was not able to select like with given job id";
 
-                ws_server.broadcast({
-                  type: "LIKE_JOB",
-                  job_id: request.query.job_id,
-                  initiator_sess: cur_sess.id,
+                var main_sql = "";
+                var main_params = {};
+
+                if (like_row[0]) {
+                  main_sql = "DELETE FROM likes WHERE likes.id = :like_id";
+                  main_params.like_id = [like_row[0].id];
+                } else {
+                  main_sql = "INSERT INTO likes (user_id, job_id) VALUES(:user_id, :job_id)";
+                  main_params.user_id = cur_sess.user_id;
+                  main_params.job_id = request.query.job_id;
+                }
+
+                db.query(main_sql, main_params, (err, rows) => {
+                  if (err) return response.status(200).send(RES_FAIL);
+
+                  db.query(
+                    `UPDATE jobs SET likes = likes ${like_row[0] ? "-" : "+"} 1 WHERE jobs.id = :job_id`,
+                    { job_id: request.query.job_id },
+                    (err, rows) => {
+                      if (err) return response.status(200).send(RES_FAIL);
+                      response.status(200).send(RES_SUCCESS);
+
+                      ws_server.broadcast({
+                        type: "LIKE_JOB",
+                        job_id: request.query.job_id,
+                        initiator_sess: cur_sess.id,
+                      });
+                    }
+                  );
                 });
-              });
-            });
-          });
-        });
+              }
+            );
+          }
+        );
       },
       (rej) => {
         throw "User not in authorized";
@@ -453,23 +507,27 @@ app.get("/get_job_files", (request, response) => {
   check_session(request.cookies)
     .then(
       (cur_sess) => {
-        db.query("SELECT count(*) cnt FROM jobs WHERE jobs.user_id = :user_id AND jobs.id = :job_id", { user_id: cur_sess.user_id, job_id: request.query.job_id }, (err, row) => {
-          if (err) throw "Error during check if current user is job creator";
+        db.query(
+          "SELECT count(*) cnt FROM jobs WHERE jobs.user_id = :user_id AND jobs.id = :job_id",
+          { user_id: cur_sess.user_id, job_id: request.query.job_id },
+          (err, row) => {
+            if (err) throw "Error during check if current user is job creator";
 
-          if (!row || row[0].cnt == 0) return response.status(200).send(RES_FAIL);
+            if (!row || row[0].cnt == 0) return response.status(200).send(RES_FAIL);
 
-          const current_dir = path.resolve(JOBS_CODE_DIR, request.query.job_id.toString());
+            const current_dir = path.resolve(JOBS_CODE_DIR, request.query.job_id.toString());
 
-          const out_file = `job_${request.query.job_id}.zip`;
-          files_list = fs.readdirSync(current_dir);
-          files_list.forEach(function (file, i, arr) {
-            arr[i] = { path: path.resolve(current_dir, file), name: file };
-          });
+            const out_file = `job_${request.query.job_id}.zip`;
+            files_list = fs.readdirSync(current_dir);
+            files_list.forEach(function (file, i, arr) {
+              arr[i] = { path: path.resolve(current_dir, file), name: file };
+            });
 
-          response.zip(files_list, out_file, (err, bytes) => {
-            if (err) console.log("Error happened during upload of job files: ", err);
-          });
-        });
+            response.zip(files_list, out_file, (err, bytes) => {
+              if (err) console.log("Error happened during upload of job files: ", err);
+            });
+          }
+        );
       },
       (rej) => {
         throw "You cannot download files without active session";
@@ -484,27 +542,42 @@ app.post("/upload_job", (request, response) => {
   check_session(request.cookies)
     .then(
       (cur_sess) => {
-        const FILE_LIST = Object.values(request.files);
-        if (FILE_LIST > 5) throw "Too many files";
-        if ("note" in request.fields == false || request.fields.note.length < 5 || request.fields.note.length > 25) throw "Invalid note";
+        db.query(
+          "SELECT count(*) cnt FROM jobs WHERE jobs.status in (:statuses) and jobs.user_id = :user_id",
+          { statuses: ADDEBLAE_STATUSES, user_id: cur_sess.user_id },
+          (err, row) => {
+            if (err) return response.status(500).send(RES_FAIL);
+            if (row.cnt >= 2) return response.status(200).json({ reason: "Max submits count reached (MAX 2)" });
 
-        if (FILE_LIST.find((el) => el.name == "main.py") == undefined) throw "No main.py file was found";
+            const FILE_LIST = Object.values(request.files);
+            if (FILE_LIST > 5) return response.status(500).json({ reason: "To many files!" });
 
-        db.query("INSERT INTO jobs (user_id, note) VALUES(:user_id, :note)", { user_id: cur_sess.user_id, note: request.fields.note }, (err, rows) => {
-          if (err) throw "Was not able to inser new job";
+            if ("note" in request.fields == false || request.fields.note.length < 5 || request.fields.note.length > 25)
+              throw "Invalid note";
 
-          const cur_job_dir = path.resolve(JOBS_CODE_DIR, rows.insertId.toString());
+            if (FILE_LIST.find((el) => el.name == "main.py") == undefined) throw "No main.py file was found";
 
-          fs.mkdirSync(cur_job_dir);
+            db.query(
+              "INSERT INTO jobs (user_id, note) VALUES(:user_id, :note)",
+              { user_id: cur_sess.user_id, note: request.fields.note },
+              (err, rows) => {
+                if (err) throw "Was not able to inser new job";
 
-          FILE_LIST.forEach((file) => {
-            fs.rename(file.path, path.resolve(cur_job_dir, file.name), (err) => {
-              if (err) console.log(err);
-            });
-          });
+                const cur_job_dir = path.resolve(JOBS_CODE_DIR, rows.insertId.toString());
 
-          response.status(200).send(RES_SUCCESS);
-        });
+                fs.mkdirSync(cur_job_dir);
+
+                FILE_LIST.forEach((file) => {
+                  fs.rename(file.path, path.resolve(cur_job_dir, file.name), (err) => {
+                    if (err) console.log(err);
+                  });
+                });
+
+                response.status(200).send(RES_SUCCESS);
+              }
+            );
+          }
+        );
       },
       (rej) => {
         throw "Unauthorized upload";
@@ -548,37 +621,44 @@ app.get("/get_submit_job", (request, response) => {
 app.get("/job_status_change", (request, response) => {
   if (request.query.api_key != process.env.TRYCUBIC_KEY) return response.status(200).send(RES_FAIL);
 
-  db.query("UPDATE jobs SET status = :status, error = :error WHERE jobs.id = :job_id", { status: request.query.new_status, error: request.query.error, job_id: request.query.job_id }, (err) => {
-    if (err) return response.status(500).json(err);
+  db.query(
+    "UPDATE jobs SET status = :status, error = :error WHERE jobs.id = :job_id",
+    { status: request.query.new_status, error: request.query.error, job_id: request.query.job_id },
+    (err) => {
+      if (err) return response.status(500).json(err);
 
-    response.status(200).send(RES_SUCCESS);
-    ws_server.broadcast({ type: "STATUS_CHANGE" });
-  });
+      response.status(200).send(RES_SUCCESS);
+      ws_server.broadcast({ type: "STATUS_CHANGE" });
+    }
+  );
 });
 
 app.get("/get_pending_job", (request, response) => {
   if (request.query.api_key != process.env.TRYCUBIC_KEY) return response.status(200).send(RES_FAIL);
 
-  db.query("SELECT jobs.id id, jobs.note note, users.username FROM jobs INNER JOIN users ON users.id = jobs.user_id WHERE jobs.status = 'pending' ORDER BY jobs.id ASC LIMIT 1", (err, row) => {
-    if (err) return response.status(500).josn(err);
-    if (row.length == 0) return response.status(500).send("NO JOBS AVAILABLE");
+  db.query(
+    "SELECT jobs.id id, jobs.note note, users.username FROM jobs INNER JOIN users ON users.id = jobs.user_id WHERE jobs.status = 'pending' ORDER BY jobs.id ASC LIMIT 1",
+    (err, row) => {
+      if (err) return response.status(500).josn(err);
+      if (row.length == 0) return response.status(500).send("NO JOBS AVAILABLE");
 
-    const current_dir = path.resolve(JOBS_CODE_DIR, row[0].id.toString());
+      const current_dir = path.resolve(JOBS_CODE_DIR, row[0].id.toString());
 
-    const out_file = `job_${row[0].id}.zip`;
-    files_list = fs.readdirSync(current_dir);
-    files_list.forEach(function (file, i, arr) {
-      arr[i] = { path: path.resolve(current_dir, file), name: file };
-    });
+      const out_file = `job_${row[0].id}.zip`;
+      files_list = fs.readdirSync(current_dir);
+      files_list.forEach(function (file, i, arr) {
+        arr[i] = { path: path.resolve(current_dir, file), name: file };
+      });
 
-    response.setHeader("trycubic_job_id", row[0].id);
-    response.setHeader("trycubic_username", row[0].username);
-    response.setHeader("trycubic_note", row[0].note);
+      response.setHeader("trycubic_job_id", row[0].id);
+      response.setHeader("trycubic_username", row[0].username);
+      response.setHeader("trycubic_note", row[0].note);
 
-    response.status(200).zip(files_list, out_file, (err, bytes) => {
-      if (err) console.log("Error happened during pending job querying: ", err);
-    });
-  });
+      response.status(200).zip(files_list, out_file, (err, bytes) => {
+        if (err) console.log("Error happened during pending job querying: ", err);
+      });
+    }
+  );
 });
 
 // Returns promise, if rejected - then cookie list does not contain active session, resolved - active session was found
@@ -618,7 +698,13 @@ function auth_google(request, response) {
       // Invalid AUD field
       if (payload.aud != GOOGLE_CLIENT_ID) throw "Invalid AUD!";
 
-      add_user(hidden_email(payload), payload.sub, "google", "picture" in payload ? payload.picture : DEFUALT_PICTURE, response);
+      add_user(
+        hidden_email(payload),
+        payload.sub,
+        "google",
+        "picture" in payload ? payload.picture : DEFUALT_PICTURE,
+        response
+      );
     })
     .catch((e) => {
       response.status(401).send("Was unable to login with Google :(");
@@ -649,7 +735,13 @@ function auth_github(request, response) {
             headers: { Authorization: "token " + res_query.access_token },
           })
           .then((res_api) => {
-            add_user(hidden_username(res_api.data), res_api.data.id, "github", "avatar_url" in res_api.data ? res_api.data.avatar_url : DEFUALT_PICTURE, response);
+            add_user(
+              hidden_username(res_api.data),
+              res_api.data.id,
+              "github",
+              "avatar_url" in res_api.data ? res_api.data.avatar_url : DEFUALT_PICTURE,
+              response
+            );
           });
       })
       .catch((err) => {
@@ -662,20 +754,32 @@ function auth_github(request, response) {
 
 function add_user(username, ext_id, type, avatar, response) {
   return new Promise((resolve, reject) => {
-    db.query("SELECT count(*) cnt FROM users WHERE users.ext_id = :ext_id AND users.type = :type", { ext_id: ext_id, type: type }, (err, row) => {
-      console.log(err, row);
-      if (err || !row) reject("Was not able to check if users exists");
-      if (row[0].cnt == 0) {
-        db.query("INSERT INTO users (username, type, ext_id, avatar) VALUES(:username, :type, :ext_id, :avatar)", { username: username, type: type, ext_id: ext_id, avatar: avatar }, (err, row) => {
-          if (err) console.log("Error in add user: ", err);
-        });
-      } else {
-        db.query("UPDATE users SET avatar = :avatar WHERE users.ext_id = :ext_id", { avatar: avatar, ext_id: ext_id }, (err, row) => {
-          if (err) console.log("Error in avatar update: ", err);
-        });
+    db.query(
+      "SELECT count(*) cnt FROM users WHERE users.ext_id = :ext_id AND users.type = :type",
+      { ext_id: ext_id, type: type },
+      (err, row) => {
+        console.log(err, row);
+        if (err || !row) reject("Was not able to check if users exists");
+        if (row[0].cnt == 0) {
+          db.query(
+            "INSERT INTO users (username, type, ext_id, avatar) VALUES(:username, :type, :ext_id, :avatar)",
+            { username: username, type: type, ext_id: ext_id, avatar: avatar },
+            (err, row) => {
+              if (err) console.log("Error in add user: ", err);
+            }
+          );
+        } else {
+          db.query(
+            "UPDATE users SET avatar = :avatar WHERE users.ext_id = :ext_id",
+            { avatar: avatar, ext_id: ext_id },
+            (err, row) => {
+              if (err) console.log("Error in avatar update: ", err);
+            }
+          );
+        }
+        resolve("Added user");
       }
-      resolve("Added user");
-    });
+    );
   }).then((suc) => {
     response
       .cookie("session", set_session_id(ext_id), {
@@ -692,9 +796,13 @@ function set_session_id(sub) {
   console.log("Adding new session with random string: ", random_str);
 
   // TODO fix double request of current profile id
-  db.query("INSERT INTO sessions (ext_id, user_id, focused_profile) VALUES(:ext_id, (SELECT id FROM users WHERE ext_id = :usr_sub), (SELECT id FROM users WHERE ext_id = :usr_sub))", { ext_id: random_str, usr_sub: sub }, (err, row) => {
-    if (err) console.log("Error in set_session_id: ", err);
-  });
+  db.query(
+    "INSERT INTO sessions (ext_id, user_id, focused_profile) VALUES(:ext_id, (SELECT id FROM users WHERE ext_id = :usr_sub), (SELECT id FROM users WHERE ext_id = :usr_sub))",
+    { ext_id: random_str, usr_sub: sub },
+    (err, row) => {
+      if (err) console.log("Error in set_session_id: ", err);
+    }
+  );
 
   return random_str;
 }
@@ -717,9 +825,13 @@ function object_empty(obj) {
 }
 
 function clear_expired_sessions() {
-  db.query("DELETE FROM sessions WHERE UNIX_TIMESTAMP(sessions.whn) < :time", { time: Math.floor(Date.now() / 1000) - SESSION_LENGTH }, (err) => {
-    if (err) console.log("Error  during expired session clearing");
-  });
+  db.query(
+    "DELETE FROM sessions WHERE UNIX_TIMESTAMP(sessions.whn) < :time",
+    { time: Math.floor(Date.now() / 1000) - SESSION_LENGTH },
+    (err) => {
+      if (err) console.log("Error during expired session clearing: ", err);
+    }
+  );
 }
 
 clear_expired_sessions();
@@ -760,24 +872,32 @@ ws_server.broadcast = function broadcast(event) {
   return new Promise((resolve, reject) => {
     switch (event.type) {
       case "LIKE_JOB":
-        db.query(`SELECT sessions.id FROM sessions WHERE ${SQL_NO_CURRENT}`, { session_id: event.initiator_sess, job_id: event.job_id }, (err, row_ressions) => {
-          if (err) return console.log("Error on SQL broadcast LIKE_JOB request: ", err);
+        db.query(
+          `SELECT sessions.id FROM sessions WHERE ${SQL_NO_CURRENT}`,
+          { session_id: event.initiator_sess, job_id: event.job_id },
+          (err, row_ressions) => {
+            if (err) return console.log("Error on SQL broadcast LIKE_JOB request: ", err);
 
-          row_ressions.forEach((row) => {
-            const con = ws_server.connections.find((con) => row.id == con.session_id);
-            if (con) con.send(WS_UPDATE_LIST);
-          });
-        });
+            row_ressions.forEach((row) => {
+              const con = ws_server.connections.find((con) => row.id == con.session_id);
+              if (con) con.send(WS_UPDATE_LIST);
+            });
+          }
+        );
         break;
       case "CANCLE_JOB":
-        db.query(`SELECT sessions.id FROM sessions WHERE ${SQL_NO_CURRENT} AND ${SQL_MAIN}`, { session_id: event.initiator_sess }, (err, row_ressions) => {
-          if (err) return console.log("Error on SQL broadcast CANCLE_JOB request: ", err);
+        db.query(
+          `SELECT sessions.id FROM sessions WHERE ${SQL_NO_CURRENT} AND ${SQL_MAIN}`,
+          { session_id: event.initiator_sess },
+          (err, row_ressions) => {
+            if (err) return console.log("Error on SQL broadcast CANCLE_JOB request: ", err);
 
-          row_ressions.forEach((row) => {
-            const con = ws_server.connections.find((con) => row.id == con.session_id);
-            if (con) con.send(WS_UPDATE_LIST);
-          });
-        });
+            row_ressions.forEach((row) => {
+              const con = ws_server.connections.find((con) => row.id == con.session_id);
+              if (con) con.send(WS_UPDATE_LIST);
+            });
+          }
+        );
         break;
       case "STATUS_CHANGE":
         db.query(`SELECT sessions.id FROM sessions`, {}, (err, row_ressions) => {
