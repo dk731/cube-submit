@@ -888,7 +888,9 @@ ws_server.broadcast = function broadcast(event) {
 
             row_ressions.forEach((row) => {
               const con = ws_server.connections.find((con) => row.id == con.session_id);
-              if (con) con.send(WS_UPDATE_LIST);
+              if (con) {
+                con.send(WS_UPDATE_LIST);
+              }
             });
           }
         );
@@ -913,6 +915,7 @@ ws_server.broadcast = function broadcast(event) {
 
           row_ressions.forEach((row) => {
             const con = ws_server.connections.find((con) => row.id == con.session_id);
+            console.log("Sending to: ", con, row);
             if (con) con.send(WS_UPDATE_LIST);
           });
         });

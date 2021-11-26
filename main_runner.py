@@ -102,7 +102,7 @@ def send_server(addr, params):
 def remove_voting(job_id, res_url):
     time.sleep(120)
 
-    logging.info("Moving job %d to done stage", job_id)
+    logging.info("Moving job %s to done stage", job_id)
     send_server(
         "job_status_change",
         {"new_status": "done", "job_id": job_id, "video_url": res_url},
@@ -119,10 +119,10 @@ def publish_clip(notes, length, job_id):
         },
     )
 
-    logging.info("Starting video render for %d job with length %d", job_id, length)
+    logging.info("Starting video render for %s job with length %d", job_id, length)
     res_url = clip_maker.make_clip(notes, length)
 
-    logging.info("Moving job %d to voting stage", job_id)
+    logging.info("Moving job %s to voting stage", job_id)
     send_server(
         "job_status_change",
         {"new_status": "voting", "job_id": job_id, "video_url": res_url},
@@ -167,4 +167,4 @@ while True:
             },
         )
 
-    logging.info("Finished job %d excecution with result: %s", job_id, run_res)
+    logging.info("Finished job %s excecution with result: %s", job_id, run_res)
