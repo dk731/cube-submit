@@ -625,12 +625,14 @@ app.get("/get_submit_job", (request, response) => {
 
 app.get("/job_status_change", (request, response) => {
   if (request.query.api_key != process.env.TRYCUBIC_KEY) return response.status(200).send(RES_FAIL);
-  if (!request.query.hasOwnProperty("video_url")) request.query["video_url"] = "NULL";
 
+  if (!request.query.hasOwnProperty("video_url")) request.query["video_url"] = "NULL";
+  console.log(request.query);
   db.query(
     "UPDATE jobs SET status = :status, error = :error, video_url = :v_url WHERE jobs.id = :job_id",
     { status: request.query.new_status, error: request.query.error, job_id: request.query.job_id, v_url: request.query.video_url },
     (err) => {
+      console.log("Job status change: ", err);
       if (err) return response.status(500).json(err);
 
       response.status(200).send(RES_SUCCESS);
@@ -867,7 +869,7 @@ ws_server.on("request", function (request) {
 ws_server.broadcast = function broadcast(event) {
   // STATUS_CHANGE - event is automaticly trigerred by local python sytax checker or by excecutor pc
   // CANCLE_JOB - evene is triggered by user
-
+  console.log("Broadcasting!");
   const SQL_MAIN = "(active_page = 'main')"; // On main page
 
   // const SQL_MY_JOBS =

@@ -62,7 +62,11 @@ def run_files() -> tuple[bool, str]:
         )
 
     logging.info("Finished job excecution in %d", time.time() - start_time)
-    return prog_suc, proc.stderr.read(), max(time.time() - start_time, 60)
+    return (
+        prog_suc,
+        proc.stderr.read() if proc.stderr else "",
+        max(time.time() - start_time, 60),
+    )
 
 
 def send_server(addr, params):

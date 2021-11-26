@@ -10,7 +10,7 @@ import io
 import logging
 
 logging.basicConfig(
-    filename="../jobs_checker.log",
+    filename="jobs_checker.log",
     encoding="utf-8",
     level=logging.INFO,
     format="%(asctime)s [ %(levelname)s ]  : %(message)s",
