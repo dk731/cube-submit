@@ -144,7 +144,7 @@ app.get("/query_table", (request, response) => {
 
         switch (cur_sess.active_page) {
           case "main":
-            sql_filter_list.push("jobs.status in ('pending','voting', 'running')");
+            sql_filter_list.push("jobs.status in ('pending', 'voting', 'running', 'rendering', 'submited', 'validating')");
             break;
           case "my_jobs":
             sql_filter_list.push("jobs.user_id = :usr_id");

@@ -99,7 +99,9 @@ class ClipMaker:
         logging.info(
             "Creating clip with name '%s' with length %d", clip_name, clip_time
         )
-        clip = self.twitch.create_clip(self.twitch_user["id"])["data"][0]
+        clip = self.twitch.create_clip(self.twitch_user["id"], has_delay=True)["data"][
+            0
+        ]
 
         logging.info("Starting publishing process of '%s' clip", clip_name)
         self.driver.get(clip["edit_url"])
