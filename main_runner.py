@@ -5,6 +5,9 @@ import time
 import os
 import io
 from random import random
+import subprocess
+from clip_maker import ClipMaker
+import threading
 
 import logging
 
@@ -16,13 +19,14 @@ logging.basicConfig(
     datefmt="%d/%m/%Y %H:%M ",
 )
 
+clip_maker = ClipMaker()
 logging.info("Starting main_runner.py")
-
 
 CUR_DIR = os.getcwd()
 RUN_FOLDER = os.path.join(CUR_DIR, "run_folder")
 TRYCUBIC_KEY = os.environ["TRYCUBIC_KEY"]
 FAIL_TIME_WAIT = 10
+RUN_SCRIPT = os.path.join(RUN_FOLDER, "main.py")
 
 if not os.path.exists(RUN_FOLDER):
     os.mkdir(RUN_FOLDER)
@@ -46,10 +50,19 @@ def run_files() -> tuple[bool, str]:
     logging.info("Starting job excecution")
     start_time = time.time()
 
-    time.sleep(random() * 20 + 10)
+    prog_suc = None
+
+    try:
+        proc = subprocess.Popen(["python3.9", RUN_SCRIPT])
+        prog_suc = proc.wait(timeout=60.0) == 0  # Check if execution status was 0
+    except subprocess.TimeoutExpired:
+        proc.terminate()
+        prog_suc = (
+            True  # Execution was seccussfull because timeout exception was triggered
+        )
 
     logging.info("Finished job excecution in %d", time.time() - start_time)
-    return True, ""
+    return prog_suc, proc.stderr.read(), max(time.time() - start_time, 60)
 
 
 def send_server(addr, params):
@@ -61,7 +74,7 @@ def send_server(addr, params):
 
         try:
             res = requests.get(
-                "http://trycubic.com:3000/" + addr, params=params, stream=True
+                "https://trycubic.com/" + addr, params=params, stream=True
             )
         except Exception as e:
             logging.error("Requests raised exception: {}".format(e))
@@ -80,6 +93,38 @@ def send_server(addr, params):
 
     logging.info("Successfully requests server %s address", addr)
     return res
+
+
+def remove_voting(job_id, res_url):
+    time.sleep(120)
+
+    logging.info("Moving job %d to done stage", job_id)
+    send_server(
+        "job_status_change",
+        {"new_status": "done", "job_id": job_id, "video_url": res_url},
+    )  # Change status to done after 60 seconds of voting
+
+
+def publish_clip(notes, length, job_id):
+    send_server(
+        "job_status_change",
+        {
+            "new_status": "rendering",
+            "job_id": job_id,
+            "error": run_err,
+        },
+    )
+
+    logging.info("Starting video render for %d job with length %d", job_id, length)
+    res_url = clip_maker.make_clip(notes, length)
+
+    logging.info("Moving job %d to voting stage", job_id)
+    send_server(
+        "job_status_change",
+        {"new_status": "voting", "job_id": job_id, "video_url": res_url},
+    )
+
+    threading.Thread(target=remove_voting, args=[job_id, res_url], daemon=True).start()
 
 
 while True:
@@ -101,15 +146,21 @@ while True:
         "job_status_change", {"new_status": "running", "job_id": job_id}
     )  # Update current job status to running
 
-    run_res, run_err = run_files()  # Run submited files
+    run_res, run_err, run_time = run_files()  # Run submited files
 
-    send_server(
-        "job_status_change",
-        {
-            "new_status": "voting" if run_res else "error",
-            "job_id": job_id,
-            "error": run_err,
-        },
-    )  # Update status of excecuted job
+    if run_res:
+        threading.Thread(
+            target=publish_clip, args=[job_note, run_time, job_id], daemon=True
+        ).start()
+
+    else:
+        send_server(
+            "job_status_change",
+            {
+                "new_status": "error",
+                "job_id": job_id,
+                "error": run_err,
+            },
+        )
 
     logging.info("Finished job %d excecution with result: %s", job_id, run_res)

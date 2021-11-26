@@ -44,7 +44,7 @@ db.connect(function (err) {
 db.config.queryFormat = npEscape;
 
 setInterval(function () {
-    db.query('SELECT 1');
+  db.query('SELECT 1');
 }, 5000);
 
 const app = express();
@@ -199,9 +199,8 @@ app.get("/query_table", (request, response) => {
                       if (!cur_status) tmp_obj["status"] = el.status;
                       // Check if job has error, if yes check if this is current user job then return status with error
                       else if (el.error && cur_sess.user_id == el.user_id) {
-                        tmp_obj["status"] = `<div class="row d-flex justify-content-center align-items-center">${
-                          cur_status.render
-                        }${ERROR_BUTTON_MODAL("Files you sumbited for this job returned with error", el.error, i)}</div>`;
+                        tmp_obj["status"] = `<div class="row d-flex justify-content-center align-items-center">${cur_status.render
+                          }${ERROR_BUTTON_MODAL("Files you sumbited for this job returned with error", el.error, i)}</div>`;
                       } else {
                         // Return just status
                         tmp_obj["status"] = cur_status.render;
@@ -626,10 +625,11 @@ app.get("/get_submit_job", (request, response) => {
 
 app.get("/job_status_change", (request, response) => {
   if (request.query.api_key != process.env.TRYCUBIC_KEY) return response.status(200).send(RES_FAIL);
+  if (!request.query.hasOwnProperty("video_url")) request.query["video_url"] = "NULL";
 
   db.query(
-    "UPDATE jobs SET status = :status, error = :error WHERE jobs.id = :job_id",
-    { status: request.query.new_status, error: request.query.error, job_id: request.query.job_id },
+    "UPDATE jobs SET status = :status, error = :error, video_url = :v_url WHERE jobs.id = :job_id",
+    { status: request.query.new_status, error: request.query.error, job_id: request.query.job_id, v_url: request.query.video_url },
     (err) => {
       if (err) return response.status(500).json(err);
 
@@ -649,7 +649,7 @@ app.get("/get_pending_job", (request, response) => {
       if (!row || row.length == 0) return response.status(500).send("NO JOBS AVAILABLE");
       console.log("Got pending job, sending, ", row);
       const current_dir = path.resolve(JOBS_CODE_DIR, row[0].id.toString());
-//      console.log("A")
+      //      console.log("A")
       const out_file = `job_${row[0].id}.zip`;
       files_list = fs.readdirSync(current_dir);
       files_list.forEach(function (file, i, arr) {
@@ -876,7 +876,7 @@ ws_server.broadcast = function broadcast(event) {
   const SQL_NO_CURRENT = "(sessions.id != :session_id)"; // Exclude event initator fro broadcast
 
   return new Promise((resolve, reject) => {
-	    switch (event.type) {
+    switch (event.type) {
       case "LIKE_JOB":
         db.query(
           `SELECT sessions.id FROM sessions WHERE ${SQL_NO_CURRENT}`,
