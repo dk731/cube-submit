@@ -21,6 +21,8 @@ logging.basicConfig(
 
 clip_maker = ClipMaker()
 logging.info("Starting main_runner.py")
+logging.info("Starting idle process")
+idle_proc = subprocess.Popen(["python3.10", "idle_anim.py"])
 
 CUR_DIR = os.getcwd()
 RUN_FOLDER = os.path.join(CUR_DIR, "run_folder")
@@ -47,6 +49,12 @@ def clear_run_folder():
 
 # Runs main.py file that was submited by user. Return true if job excecuted successfully, false - if not
 def run_files() -> tuple[bool, str]:
+    logging.info("Trying to stop idle process")
+    try:
+        idle_proc.terminate()
+    except:
+        pass
+
     logging.info("Starting job excecution")
     start_time = time.time()
 
@@ -151,6 +159,10 @@ while True:
     )  # Update current job status to running
 
     run_res, run_err, run_time = run_files()  # Run submited files
+
+    idle_proc = subprocess.Popen(
+        ["python3.10", "idle_anim.py"]
+    )  # Start idle animation process
 
     if run_res:
         threading.Thread(

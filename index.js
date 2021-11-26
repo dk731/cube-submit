@@ -606,7 +606,7 @@ app.get("/get_submit_job", (request, response) => {
   db.query("SELECT jobs.id FROM jobs WHERE jobs.status = 'submited' ORDER BY jobs.id ASC LIMIT 1", (err, row) => {
     if (err) return response.status(500).send(err);
     if (!row || !row.length) return response.status(400).send("NO NEW SUBMIT JOBS AVAILABLE");
-    console.log("Get submit, ", row, row.length)
+
     const current_dir = path.resolve(JOBS_CODE_DIR, row[0].id.toString());
     const out_file = "job.zip";
 
@@ -626,13 +626,11 @@ app.get("/get_submit_job", (request, response) => {
 app.get("/job_status_change", (request, response) => {
   if (request.query.api_key != process.env.TRYCUBIC_KEY) return response.status(200).send(RES_FAIL);
 
-  if (!request.query.hasOwnProperty("video_url")) request.query["video_url"] = "NULL";
-  console.log(request.query);
+  // if (!request.query.hasOwnProperty("video_url")) request.query["video_url"] = "";
   db.query(
     "UPDATE jobs SET status = :status, error = :error, video_url = :v_url WHERE jobs.id = :job_id",
     { status: request.query.new_status, error: request.query.error, job_id: request.query.job_id, v_url: request.query.video_url },
     (err) => {
-      console.log("Job status change: ", err);
       if (err) return response.status(500).json(err);
 
       response.status(200).send(RES_SUCCESS);
@@ -649,7 +647,7 @@ app.get("/get_pending_job", (request, response) => {
     (err, row) => {
       if (err) return response.status(500).josn(err);
       if (!row || row.length == 0) return response.status(500).send("NO JOBS AVAILABLE");
-      console.log("Got pending job, sending, ", row);
+
       const current_dir = path.resolve(JOBS_CODE_DIR, row[0].id.toString());
       //      console.log("A")
       const out_file = `job_${row[0].id}.zip`;
@@ -766,7 +764,6 @@ function add_user(username, ext_id, type, avatar, response) {
       "SELECT count(*) cnt FROM users WHERE users.ext_id = :ext_id AND users.type = :type",
       { ext_id: ext_id, type: type },
       (err, row) => {
-        console.log(err, row);
         if (err || !row) reject("Was not able to check if users exists");
         if (row[0].cnt == 0) {
           db.query(
@@ -911,11 +908,11 @@ ws_server.broadcast = function broadcast(event) {
         break;
       case "STATUS_CHANGE":
         db.query(`SELECT sessions.id FROM sessions`, {}, (err, row_ressions) => {
-          if (err) return console.log("Error on SQL broadcast CANCLE_JOB request: ", err);
+          if (err) return console.log("Error on SQL broadcast STATUS_CHANGE request: ", err);
 
           row_ressions.forEach((row) => {
             const con = ws_server.connections.find((con) => row.id == con.session_id);
-            console.log("Sending to: ", con, row);
+            console.log("Sending to: ", row);
             if (con) con.send(WS_UPDATE_LIST);
           });
         });
