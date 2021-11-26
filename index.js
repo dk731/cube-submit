@@ -32,9 +32,9 @@ var db;
 
 db = mysql.createConnection({
   host: "localhost",
-  user: "root",
-  password: "root",
-  database: "try_cubic",
+  user: "trycubic",
+  password: process.env.MYSQL_PSWD,
+  database: "trycubic",
 });
 db.connect(function (err) {
   if (err) throw err;
@@ -606,8 +606,8 @@ app.get("/get_submit_job", (request, response) => {
 
   db.query("SELECT jobs.id FROM jobs WHERE jobs.status = 'submited' ORDER BY jobs.id ASC LIMIT 1", (err, row) => {
     if (err) return response.status(500).send(err);
-    if (!row.length) response.status(400).send("NO NEW SUBMIT JOBS AVAILABLE");
-
+    if (!row || !row.length) return response.status(400).send("NO NEW SUBMIT JOBS AVAILABLE");
+    console.log("Get submit, ", row, row.length)
     const current_dir = path.resolve(JOBS_CODE_DIR, row[0].id.toString());
     const out_file = "job.zip";
 
@@ -646,10 +646,10 @@ app.get("/get_pending_job", (request, response) => {
     "SELECT jobs.id id, jobs.note note, users.username FROM jobs INNER JOIN users ON users.id = jobs.user_id WHERE jobs.status = 'pending' ORDER BY jobs.id ASC LIMIT 1",
     (err, row) => {
       if (err) return response.status(500).josn(err);
-      if (row.length == 0) return response.status(500).send("NO JOBS AVAILABLE");
-
+      if (!row || row.length == 0) return response.status(500).send("NO JOBS AVAILABLE");
+      console.log("Got pending job, sending, ", row);
       const current_dir = path.resolve(JOBS_CODE_DIR, row[0].id.toString());
-
+//      console.log("A")
       const out_file = `job_${row[0].id}.zip`;
       files_list = fs.readdirSync(current_dir);
       files_list.forEach(function (file, i, arr) {
@@ -844,7 +844,6 @@ clear_expired_sessions();
 setTimeout(clear_expired_sessions, 43200000); // Clear expired session every 12 hours
 
 ws_server.on("request", function (request) {
-  console.log(request);
   // if (request.origin != "https://trycubic.com:3000") return request.reject();
 
   const parsed_cookies = {};
@@ -877,7 +876,7 @@ ws_server.broadcast = function broadcast(event) {
   const SQL_NO_CURRENT = "(sessions.id != :session_id)"; // Exclude event initator fro broadcast
 
   return new Promise((resolve, reject) => {
-    switch (event.type) {
+	    switch (event.type) {
       case "LIKE_JOB":
         db.query(
           `SELECT sessions.id FROM sessions WHERE ${SQL_NO_CURRENT}`,
