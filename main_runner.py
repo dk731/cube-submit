@@ -1,3 +1,4 @@
+from typing_extensions import Required
 from zipfile import ZipFile
 import requests
 import shutil
@@ -5,9 +6,10 @@ import time
 import os
 import io
 from random import random
-import subprocess
 from clip_maker import ClipMaker
 import threading
+import subprocess
+
 
 import logging
 
@@ -128,6 +130,8 @@ def publish_clip(notes, length, job_id):
     )
 
     logging.info("Starting video render for %s job with length %d", job_id, length)
+
+    time.sleep(2)
     res_url = clip_maker.make_clip(notes, length)
 
     logging.info("Moving job %s to voting stage", job_id)
