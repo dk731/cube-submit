@@ -301,7 +301,8 @@ app.get("/profile", (request, response) => {
           "SELECT b.*, (SELECT COUNT(*) FROM users u) total_users, (SELECT users.avatar FROM users where users.id = :cur_user) cur_avatar FROM (SELECT (@rownum := @rownum + 1) total_rank, user_id, avatar, username, IFNULL(sum(job_likes), 0) total_likes, count(jobs_id) total_jobs FROM(SELECT users.avatar avatar, users.username username, users.id user_id, jobs.id jobs_id, jobs.likes job_likes FROM users LEFT JOIN jobs ON users.id = jobs.user_id) a, (SELECT @rownum := 0) r GROUP BY username ORDER BY total_likes DESC) b WHERE b.user_id = :profile_user",
           { profile_user: cur_sess.focused_profile, cur_user: cur_sess.user_id },
           (err, row) => {
-            if (err || !row.length) response.status(500).send(RES_FAIL);
+            console.log(err)
+            if (err || !row.length) return response.status(500).send(RES_FAIL);
             const user = row[0];
 
             NO_CACHE_HEADERS(response);
