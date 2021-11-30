@@ -123,3 +123,8 @@ users_data.sqbpro
 uploaded_files_tmp/*
 
 jobs_folder/*
+job_folder/*
+run_folder/*
+.vscode
+
+*.pyc

@@ -21,9 +21,8 @@ const LIKES_R = (likes_amount, job_id, row_id, btn_classes, i_classes) => `
     <div>${likes_amount}</div>
   </div>
   <div class="col-6">
-    <div class="btn btn-sm btn-icon btn-outline-danger btn-hover-rotate-${
-      (row_id & 1) == 0 ? "end" : "start"
-    } me-1 btn-outline ${btn_classes}" onclick="on_like_click(${job_id})">
+    <div class="btn btn-sm btn-icon btn-outline-danger btn-hover-rotate-${(row_id & 1) == 0 ? "end" : "start"
+  } me-1 btn-outline ${btn_classes}" onclick="on_like_click(${job_id})">
       <i class="fas ${i_classes}"></i>
     </div>
   </div>
@@ -139,6 +138,10 @@ global.global.STATUSES = {
     value: "running",
     render: STATUS_BAGE_R("light-info", "running"),
   },
+  RENDERING: {
+    value: "rendering",
+    render: STATUS_BAGE_R("light-warning", "rendering"),
+  },
   VOTING: {
     value: "voting",
     render: STATUS_BAGE_R("success", "voting"),
@@ -168,7 +171,7 @@ global.LISTS_NAMES = {
   profile: "Top User's Jobs",
 };
 
-global.LIKABLE_STATUSES = [STATUSES.RUNNING.value, STATUSES.VOTING.value, STATUSES.DONE.value];
+global.LIKABLE_STATUSES = [STATUSES.VOTING.value, STATUSES.DONE.value];
 
 global.CANCLABLE_STATUSES = [STATUSES.SUBMITED.value, STATUSES.VALIDATING.value, STATUSES.PENDING.value];
 

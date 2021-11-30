@@ -29,17 +29,23 @@ fs.readdir(TMP_FILES_DIR, (err, files) => {
 });
 
 var db;
+
 db = mysql.createConnection({
   host: "localhost",
-  user: "root",
-  password: "root",
-  database: "try_cubic",
+  user: "trycubic",
+  password: process.env.MYSQL_PSWD,
+  database: "trycubic",
 });
 db.connect(function (err) {
   if (err) throw err;
   console.log("Connected to MySQL DB!");
 });
+
 db.config.queryFormat = npEscape;
+
+setInterval(function () {
+  db.query("SELECT 1");
+}, 5000);
 
 const app = express();
 
@@ -138,7 +144,7 @@ app.get("/query_table", (request, response) => {
 
         switch (cur_sess.active_page) {
           case "main":
-            sql_filter_list.push("jobs.status in ('pending','voting', 'running')");
+            sql_filter_list.push("jobs.status in ('pending', 'voting', 'running', 'rendering', 'submited', 'validating')");
             break;
           case "my_jobs":
             sql_filter_list.push("jobs.user_id = :usr_id");
@@ -296,7 +302,8 @@ app.get("/profile", (request, response) => {
           "SELECT b.*, (SELECT COUNT(*) FROM users u) total_users, (SELECT users.avatar FROM users where users.id = :cur_user) cur_avatar FROM (SELECT (@rownum := @rownum + 1) total_rank, user_id, avatar, username, IFNULL(sum(job_likes), 0) total_likes, count(jobs_id) total_jobs FROM(SELECT users.avatar avatar, users.username username, users.id user_id, jobs.id jobs_id, jobs.likes job_likes FROM users LEFT JOIN jobs ON users.id = jobs.user_id) a, (SELECT @rownum := 0) r GROUP BY user_id ORDER BY total_likes DESC) b WHERE b.user_id = :profile_user",
           { profile_user: cur_sess.focused_profile, cur_user: cur_sess.user_id },
           (err, row) => {
-            if (err || !row.length) response.status(500).send(RES_FAIL);
+            //            if (err || !row.length) return response.status(500).send(RES_FAIL);
+            if (err || !row.length) return response.status(500).json(err);
             const user = row[0];
 
             NO_CACHE_HEADERS(response);
@@ -600,7 +607,7 @@ app.get("/get_submit_job", (request, response) => {
 
   db.query("SELECT jobs.id FROM jobs WHERE jobs.status = 'submited' ORDER BY jobs.id ASC LIMIT 1", (err, row) => {
     if (err) return response.status(500).send(err);
-    if (!row.length) response.status(400).send("NO NEW SUBMIT JOBS AVAILABLE");
+    if (!row || !row.length) return response.status(400).send("NO NEW SUBMIT JOBS AVAILABLE");
 
     const current_dir = path.resolve(JOBS_CODE_DIR, row[0].id.toString());
     const out_file = "job.zip";
@@ -621,9 +628,15 @@ app.get("/get_submit_job", (request, response) => {
 app.get("/job_status_change", (request, response) => {
   if (request.query.api_key != process.env.TRYCUBIC_KEY) return response.status(200).send(RES_FAIL);
 
+  // if (!request.query.hasOwnProperty("video_url")) request.query["video_url"] = "";
   db.query(
-    "UPDATE jobs SET status = :status, error = :error WHERE jobs.id = :job_id",
-    { status: request.query.new_status, error: request.query.error, job_id: request.query.job_id },
+    "UPDATE jobs SET status = :status, error = :error, video_url = :v_url WHERE jobs.id = :job_id",
+    {
+      status: request.query.new_status,
+      error: request.query.error,
+      job_id: request.query.job_id,
+      v_url: request.query.video_url,
+    },
     (err) => {
       if (err) return response.status(500).json(err);
 
@@ -640,10 +653,10 @@ app.get("/get_pending_job", (request, response) => {
     "SELECT jobs.id id, jobs.note note, users.username FROM jobs INNER JOIN users ON users.id = jobs.user_id WHERE jobs.status = 'pending' ORDER BY jobs.id ASC LIMIT 1",
     (err, row) => {
       if (err) return response.status(500).josn(err);
-      if (row.length == 0) return response.status(500).send("NO JOBS AVAILABLE");
+      if (!row || row.length == 0) return response.status(500).send("NO JOBS AVAILABLE");
 
       const current_dir = path.resolve(JOBS_CODE_DIR, row[0].id.toString());
-
+      //      console.log("A")
       const out_file = `job_${row[0].id}.zip`;
       files_list = fs.readdirSync(current_dir);
       files_list.forEach(function (file, i, arr) {
@@ -758,7 +771,6 @@ function add_user(username, ext_id, type, avatar, response) {
       "SELECT count(*) cnt FROM users WHERE users.ext_id = :ext_id AND users.type = :type",
       { ext_id: ext_id, type: type },
       (err, row) => {
-        console.log(err, row);
         if (err || !row) reject("Was not able to check if users exists");
         if (row[0].cnt == 0) {
           db.query(
@@ -880,7 +892,9 @@ ws_server.broadcast = function broadcast(event) {
 
             row_ressions.forEach((row) => {
               const con = ws_server.connections.find((con) => row.id == con.session_id);
-              if (con) con.send(WS_UPDATE_LIST);
+              if (con) {
+                con.send(WS_UPDATE_LIST);
+              }
             });
           }
         );
@@ -901,10 +915,11 @@ ws_server.broadcast = function broadcast(event) {
         break;
       case "STATUS_CHANGE":
         db.query(`SELECT sessions.id FROM sessions`, {}, (err, row_ressions) => {
-          if (err) return console.log("Error on SQL broadcast CANCEL_JOB request: ", err);
+          if (err) return console.log("Error on SQL broadcast STATUS_CHANGE request: ", err);
 
           row_ressions.forEach((row) => {
             const con = ws_server.connections.find((con) => row.id == con.session_id);
+            console.log("Sending to: ", row);
             if (con) con.send(WS_UPDATE_LIST);
           });
         });

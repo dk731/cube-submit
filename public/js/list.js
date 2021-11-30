@@ -138,6 +138,7 @@ function on_ws_close(msg) {
 // });
 
 function on_ws_message(msg) {
+  console.log("WS receive!: ", msg.data)
   const in_msg = JSON.parse(msg.data);
   if (in_msg.update_list) {
     if (!modal_state.oppened) dt.ajax.reload(null, false);
