@@ -69,9 +69,9 @@ global.UNLIKE_BTN = (likes_amount, job_id, row_id) => LIKES_R(likes_amount, job_
 global.FILES_BUTTON = (job_id) =>
   `<a href="/get_job_files?job_id=${job_id}" download="job_${job_id}.zip" class="btn btn-sm btn-info btn-hover-scale"><i class="bi bi-file-earmark-arrow-down-fill"></i> Files</a>`;
 
-global.ACTIVE_CANCLE_BTN = (job_id) =>
-  `<div class="btn btn-sm btn-danger btn-hover-rise" onclick="on_cancle_click(${job_id})"><i class="bi bi-x-octagon"></i> Cancle</div>`;
-global.DISABLED_CANCLE_BTN = () => `<div class="btn btn-sm btn-danger disabled"><i class="bi bi-x-octagon"></i> Cancle</div>`;
+global.ACTIVE_CANCEL_BTN = (job_id) =>
+  `<div class="btn btn-sm btn-danger btn-hover-rise" onclick="on_cancel_click(${job_id})"><i class="bi bi-x-octagon"></i> Cancel</div>`;
+global.DISABLED_CANCEL_BTN = () => `<div class="btn btn-sm btn-danger disabled"><i class="bi bi-x-octagon"></i> Cancel</div>`;
 
 global.ERROR_BUTTON_MODAL = (title, err, i) =>
   `
@@ -101,7 +101,7 @@ global.LIST_VIEWS = {
     { db_name: "video_url", name: "Video" },
     { db_name: "likes", name: "Likes" },
     { db_name: "files", name: "Files" },
-    { db_name: "cancle", name: "Cancle Job" },
+    { db_name: "cancel", name: "Cancel Job" },
   ]),
   leader: LIST_ROWS_R([
     { db_name: "id", name: "Task ID" },

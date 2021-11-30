@@ -158,26 +158,6 @@ var KTModalCustomersAdd = (function () {
       });
     });
 
-    // drop_zone.on("sending", function (data, xhr, formData) {
-    //   if (!formData.has("note"))
-    //     formData.append("note", document.getElementById("note_input").value);
-    // });
-
-    // drop_zone.on("success", function (ret) {
-    //   console.log("Successfully uploaded", ret);
-    // });
-
-    // drop_zone.on("error", function (file, ret) {
-    //   console.log("Error during uploading", file, ret);
-    // });
-
-    // drop_zone.on("successmultiple", function (file, ret) {
-    //   console.log("Success multiple", file, ret);
-    // });
-
-    // myDropzone.on("complete", function (ret) {
-    //   console.log(ret);
-    // });
   };
 
   return {

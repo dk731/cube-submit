@@ -208,10 +208,10 @@ app.get("/query_table", (request, response) => {
                   case "whn":
                     tmp_obj["whn"] = new Date(el.whn).toLocaleDateString();
                     break;
-                  case "cancle":
-                    tmp_obj["cancle"] = CANCLABLE_STATUSES.includes(el.status)
-                      ? ACTIVE_CANCLE_BTN(el.id)
-                      : DISABLED_CANCLE_BTN();
+                  case "cancel":
+                    tmp_obj["cancel"] = CANCLABLE_STATUSES.includes(el.status)
+                      ? ACTIVE_CANCEL_BTN(el.id)
+                      : DISABLED_CANCEL_BTN();
                     break;
                   case "video_url":
                     tmp_obj.video_url = el.video_url ? VIDEO_BTN(el.video_url) : "Video is currently unavailable";
@@ -250,7 +250,7 @@ app.get("/query_table", (request, response) => {
     });
 });
 
-app.get("/cancle_job", (request, response) => {
+app.get("/cancel_job", (request, response) => {
   check_session(request.cookies)
     .then(
       (cur_sess) => {
@@ -270,7 +270,7 @@ app.get("/cancle_job", (request, response) => {
                 response.status(200).send(RES_SUCCESS);
 
                 ws_server.broadcast({
-                  type: "CANCLE_JOB",
+                  type: "CANCEL_JOB",
                   initiator_sess: cur_sess.id,
                 });
               }
@@ -279,7 +279,7 @@ app.get("/cancle_job", (request, response) => {
         );
       },
       (rej) => {
-        throw "Cant cancle job withput active session";
+        throw "Cant cancel job withput active session";
       }
     )
     .catch((err) => {
@@ -293,7 +293,7 @@ app.get("/profile", (request, response) => {
       (cur_sess) => {
         // avatar, username, total_likes, total_jobs, users_top
         db.query(
-          "SELECT b.*, (SELECT COUNT(*) FROM users u) total_users, (SELECT users.avatar FROM users where users.id = :cur_user) cur_avatar FROM (SELECT (@rownum := @rownum + 1) total_rank, user_id, avatar, username, IFNULL(sum(job_likes), 0) total_likes, count(jobs_id) total_jobs FROM(SELECT users.avatar avatar, users.username username, users.id user_id, jobs.id jobs_id, jobs.likes job_likes FROM users LEFT JOIN jobs ON users.id = jobs.user_id) a, (SELECT @rownum := 0) r GROUP BY username ORDER BY total_likes DESC) b WHERE b.user_id = :profile_user",
+          "SELECT b.*, (SELECT COUNT(*) FROM users u) total_users, (SELECT users.avatar FROM users where users.id = :cur_user) cur_avatar FROM (SELECT (@rownum := @rownum + 1) total_rank, user_id, avatar, username, IFNULL(sum(job_likes), 0) total_likes, count(jobs_id) total_jobs FROM(SELECT users.avatar avatar, users.username username, users.id user_id, jobs.id jobs_id, jobs.likes job_likes FROM users LEFT JOIN jobs ON users.id = jobs.user_id) a, (SELECT @rownum := 0) r GROUP BY user_id ORDER BY total_likes DESC) b WHERE b.user_id = :profile_user",
           { profile_user: cur_sess.focused_profile, cur_user: cur_sess.user_id },
           (err, row) => {
             if (err || !row.length) response.status(500).send(RES_FAIL);
@@ -860,7 +860,7 @@ ws_server.on("request", function (request) {
 
 ws_server.broadcast = function broadcast(event) {
   // STATUS_CHANGE - event is automaticly trigerred by local python sytax checker or by excecutor pc
-  // CANCLE_JOB - evene is triggered by user
+  // CANCEL_JOB - evene is triggered by user
 
   const SQL_MAIN = "(active_page = 'main')"; // On main page
 
@@ -885,12 +885,12 @@ ws_server.broadcast = function broadcast(event) {
           }
         );
         break;
-      case "CANCLE_JOB":
+      case "CANCEL_JOB":
         db.query(
           `SELECT sessions.id FROM sessions WHERE ${SQL_NO_CURRENT} AND ${SQL_MAIN}`,
           { session_id: event.initiator_sess },
           (err, row_ressions) => {
-            if (err) return console.log("Error on SQL broadcast CANCLE_JOB request: ", err);
+            if (err) return console.log("Error on SQL broadcast CANCEL_JOB request: ", err);
 
             row_ressions.forEach((row) => {
               const con = ws_server.connections.find((con) => row.id == con.session_id);
@@ -901,7 +901,7 @@ ws_server.broadcast = function broadcast(event) {
         break;
       case "STATUS_CHANGE":
         db.query(`SELECT sessions.id FROM sessions`, {}, (err, row_ressions) => {
-          if (err) return console.log("Error on SQL broadcast CANCLE_JOB request: ", err);
+          if (err) return console.log("Error on SQL broadcast CANCEL_JOB request: ", err);
 
           row_ressions.forEach((row) => {
             const con = ws_server.connections.find((con) => row.id == con.session_id);
