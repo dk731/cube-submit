@@ -63,7 +63,7 @@ def run_files() -> tuple[bool, str]:
     prog_suc = None
 
     try:
-        proc = subprocess.Popen(["python3.9", RUN_SCRIPT])
+        proc = subprocess.Popen(["python3.10", RUN_SCRIPT])
         prog_suc = proc.wait(timeout=60.0) == 0  # Check if execution status was 0
     except subprocess.TimeoutExpired:
         proc.terminate()
@@ -84,6 +84,7 @@ def send_server(addr, params):
     res = None
 
     while True:
+
         logging.info("Attempting to set get requests to server...")
 
         try:

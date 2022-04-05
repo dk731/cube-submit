@@ -11,7 +11,7 @@ class Point:
     def __init__(self):
         self.pos = [random() * 15 for _ in range(3)]
         self.color = colorsys.hsv_to_rgb(random(), 1, 1)
-        self.size = random() + 0.7
+        self.size = random() * 0.5 + 1.5
         self.drawer = cd.get_obj()
 
     def draw(self):
