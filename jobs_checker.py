@@ -71,7 +71,7 @@ def send_server(addr, params):
 
         try:
             res = requests.get(
-                "https://trycubic.com/" + addr, params=params, stream=True
+                "https://cube.qwe.me/" + addr, params=params, stream=True
             )
         except Exception as e:
             logging.error("Requests raised exception: {}".format(e))

@@ -26,7 +26,7 @@ function attach_google() {
 //////////////////////////////////////////// GITHUB
 function auth_github() {
   const random_str = get_random_string();
-  const github_url = `https://github.com/login/oauth/authorize?client_id=e770e6440fbaac8200a7&redirect_uri=https://trycubic.com/tokensignin&state=${random_str}&rememb_value=${random_str}`;
+  const github_url = `https://github.com/login/oauth/authorize?client_id=e770e6440fbaac8200a7&redirect_uri=https://cube.qwe.me/tokensignin&state=${random_str}&rememb_value=${random_str}`;
   window.location.replace("/tokensignin?inst_redir=" + github_url);
 }
 
